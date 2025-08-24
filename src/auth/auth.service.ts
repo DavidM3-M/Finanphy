@@ -1,0 +1,50 @@
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
+import { UsersService } from '../users/users.service';
+import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
+
+@Injectable()
+export class AuthService {
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly jwtService: JwtService,
+  ) {}
+
+  async register(dto: RegisterDto) {
+    const existing = await this.usersService.findByEmail(dto.email);
+    if (existing) {
+      throw new UnauthorizedException('Email ya registrado');
+    }
+    const hashedPassword = await bcrypt.hash(dto.password, 10);
+    const user = await this.usersService.create({
+    firstName: dto.firstName,
+    lastName: dto.lastName,
+    email: dto.email,
+    password: hashedPassword,
+    });
+
+    const payload = { sub: user.id, email: user.email, isActive: user.isActive };
+    const token = await this.jwtService.signAsync(payload);
+    return { access_token: token };
+        
+  }
+
+  async login(dto: LoginDto) {
+    const user = await this.usersService.findByEmail(dto.email);
+    if (!user) throw new UnauthorizedException('Usuario no encontrado');
+
+    const passwordMatch = await bcrypt.compare(dto.password, user.password);
+    if (!passwordMatch) throw new UnauthorizedException('Contraseña incorrecta');
+
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      isActive: user.isActive,
+    };
+
+    const token = await this.jwtService.signAsync(payload);
+    return { access_token: token };
+  }
+}
