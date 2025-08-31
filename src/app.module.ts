@@ -7,7 +7,7 @@ import { User } from './users/entities/user.entity';
 import { AuthModule } from './auth/auth.module';
 import { ExpensesModule } from './expenses/expenses.module';
 import { OrdersModule } from './orders/orders.module';
-
+import { Expense } from './expenses/entities/expense.entity';
 @Module({
   imports: [
     TypeOrmModule.forRoot({
@@ -17,7 +17,7 @@ import { OrdersModule } from './orders/orders.module';
       username: 'root',
       password: '',
       database: 'finanphy_db',
-      entities: [User],
+      entities: [User, Expense],
       synchronize: true
     }),
     UsersModule,
