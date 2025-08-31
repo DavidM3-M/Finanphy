@@ -22,13 +22,13 @@ import { OrdersModule } from './orders/orders.module';
     TypeOrmModule.forRootAsync({
       useFactory: () => ({
         type: 'postgres',
-        host: process.env.PGHOST,
-        port: parseInt(process.env.PGPORT ?? '5432'),
-        username: process.env.PGUSER,
-        password: process.env.PGPASSWORD,
-        database: process.env.PGDATABASE,
+        host: process.env.POSTGRESS_HOST,
+        port: parseInt(process.env.POSTGRES_PORT ?? '5432'),
+        username: process.env.POSTGRES_USERNAME ,
+        password: process.env.POSTGRES_PASSWORD ,
+        database: process.env.POSTGRES_DATABASE ,
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: true, // ⚠️ Solo para desarrollo
+        synchronize: true, 
       }),
     }),
     UsersModule,

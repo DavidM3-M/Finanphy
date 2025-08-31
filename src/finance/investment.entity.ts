@@ -23,13 +23,13 @@ export class Investment {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
    entryDate: Date; //fecha entrada
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   exitDate?: Date; //fecha salida
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   dueDate?: Date; //fecha vencimiento
 
   
