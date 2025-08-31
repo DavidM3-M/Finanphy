@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -20,16 +20,26 @@ import { OrdersModule } from './orders/orders.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
-      useFactory: () => ({
-        type: 'postgres',
-        host: process.env.POSTGRESS_HOST,
-        port: parseInt(process.env.POSTGRES_PORT ?? '5432'),
-        username: process.env.POSTGRES_USERNAME ,
-        password: process.env.POSTGRES_PASSWORD ,
-        database: process.env.POSTGRES_DATABASE ,
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: true, 
-      }),
+      useFactory: () => {
+        const useSSL = process.env.POSTGRES_SSL === 'true';
+
+        return {
+          type: 'postgres',
+          host: process.env.POSTGRES_HOST,
+          port: parseInt(process.env.POSTGRES_PORT ?? '5432'),
+          username: process.env.POSTGRES_USERNAME,
+          password: process.env.POSTGRES_PASSWORD,
+          database: process.env.POSTGRES_DATABASE,
+          entities: [__dirname + '/**/*.entity{.ts,.js}'],
+          synchronize: true,
+          ssl: process.env.POSTGRES_SSL === 'true',
+          extra: {
+            ssl: process.env.POSTGRES_SSL === 'true'
+              ? { rejectUnauthorized: false } // útil en desarrollo
+              : undefined,
+          },
+        };
+      },
     }),
     UsersModule,
     AuthModule,
