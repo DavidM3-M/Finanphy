@@ -1,8 +1,7 @@
 // src/finance/expenses.controller.ts
 import { Controller, Get, Post, Param, Body, ParseIntPipe } from '@nestjs/common';
-import { ExpensesService } from './expenses.service';
-import { CreateExpenseDto } from './dto/create-expense.dto';
-
+import { ExpensesService } from '../services/expenses.service';
+import { CreateExpenseDto } from '../dto/create-expense.dto';
 @Controller('expenses')
 export class ExpensesController {
   constructor(private readonly expensesService: ExpensesService) {}

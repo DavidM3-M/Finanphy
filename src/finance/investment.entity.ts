@@ -13,7 +13,7 @@ export class Investment {
   category: string;
 
   @Column({ nullable: true })
-  invoiceNumber?: string;
+  invoicenumber?: string;
 
   // Fecha de creación automática
   @CreateDateColumn()

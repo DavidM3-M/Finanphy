@@ -2,8 +2,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Expense } from './expense.entity';
-import { CreateExpenseDto } from './dto/create-expense.dto';
+import { Expense } from '../expense.entity';
+import { CreateExpenseDto } from '../dto/create-expense.dto';
 
 @Injectable()
 export class ExpensesService {

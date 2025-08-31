@@ -2,8 +2,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Income } from './income.entity';
-import { CreateIncomeDto } from './dto/create-income.dto';
+import { Income } from '../income.entity';
+import { CreateIncomeDto } from '../dto/create-income.dto';
+import { UpdateIncomeDto } from '../dto/update-income.dto';
+
 
 @Injectable()
 export class IncomesService {
@@ -26,4 +28,19 @@ export class IncomesService {
     const income = this.incomesRepo.create(dto);
     return this.incomesRepo.save(income);
   }
+
+  async update(id: number, dto: UpdateIncomeDto) {
+    const income = await this.findOne(id); // valida que exista
+    Object.assign(income, dto); // lo que hace es que copia los datos nuevos sobre el existente
+    return this.incomesRepo.save(income);
+  }
+
+  async remove(id: number) {
+      const result = await this.incomesRepo.delete(id);
+      if (result.affected === 0) {
+        throw new NotFoundException(`Ingreso con ID ${id} no encontrado`);
+      }
+      return { message: 'Ingreso eliminado correctamente' };
+    }
+
 }
