@@ -1,35 +1,65 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Put } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  UseGuards,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { Roles } from 'src/auth/decorators/roles.decorator';
+import { Role } from 'src/auth/enums/role.enum';
+import { UserEntity } from './entities/user.entity';
 
-@Controller('/api/users')
+@UseGuards(AuthGuard('jwt')) 
+@Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
-  
-  //Registro de usuario
-  @Post('register')
-  async register(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto);
+
+  @Post()
+  @Roles(Role.Admin) // Solo admins pueden crear usuarios
+  @UseGuards(RolesGuard)
+  async create(@Body() dto: CreateUserDto): Promise<UserEntity> {
+    return this.usersService.create(dto);
   }
 
   @Get()
-  findAll() {
+  @Roles(Role.Admin) // Solo admins pueden ver todos los usuarios
+  @UseGuards(RolesGuard)
+  async findAll(): Promise<UserEntity[]> {
     return this.usersService.findAll();
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(+id);
+  async findOne(@Param('id') id: string): Promise<UserEntity | null> {
+    return this.usersService.findById(id);
   }
 
-  @Put(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(+id, updateUserDto);
+  @Patch(':id')
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateUserDto,
+  ): Promise<UserEntity> {
+    return this.usersService.update(id, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(+id);
+  @Roles(Role.Admin) // Solo admins pueden eliminar usuarios
+  @UseGuards(RolesGuard)
+  async remove(@Param('id') id: string): Promise<void> {
+    return this.usersService.remove(id);
+  }
+
+  @Get('admin/only')
+  @Roles(Role.Admin)
+  @UseGuards(RolesGuard)
+  getAdminStuff(): string {
+    return 'Solo admins pueden ver esto';
   }
 }

@@ -25,13 +25,18 @@ export class AuthService {
     password: hashedPassword,
     });
 
-    const payload = { sub: user.id, email: user.email, isActive: user.isActive };
+    const payload = { 
+      sub: user.id,
+      email: user.email,
+      isActive: user.isActive,
+      role: user.role
+    };
     const token = await this.jwtService.signAsync(payload);
     return { access_token: token };
         
   }
-
-  async login(dto: LoginDto) {
+    //ingreso al sistema
+   async login(dto: LoginDto) {
     const user = await this.usersService.findByEmail(dto.email);
     if (!user) throw new UnauthorizedException('Usuario no encontrado');
 
@@ -44,7 +49,9 @@ export class AuthService {
       isActive: user.isActive,
     };
 
+    //retorno de token de acceso
     const token = await this.jwtService.signAsync(payload);
     return { access_token: token };
   }
+
 }

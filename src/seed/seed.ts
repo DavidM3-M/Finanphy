@@ -1,0 +1,31 @@
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from '../app.module';
+import { UsersService } from 'src/users/users.service';
+import { Role } from 'src/auth/enums/role.enum';
+import * as bcrypt from 'bcrypt';
+
+async function bootstrap() {
+  const app = await NestFactory.createApplicationContext(AppModule);
+  const usersService = app.get(UsersService);
+
+  const existing = await usersService.findByEmail('admin@finanphy.com');
+  if (existing) {
+    console.log('Admin ya existe. Seed cancelado.');
+    return;
+  }
+
+  const hashedPassword = await bcrypt.hash('admin123', 10);
+
+  await usersService.create({
+    firstName: 'Admin',
+    lastName: 'Root',
+    email: 'admin@finanphy.com',
+    password: hashedPassword,
+    role: Role.Admin,
+  });
+
+  console.log('Admin creado exitosamente');
+  await app.close();
+}
+
+bootstrap();
