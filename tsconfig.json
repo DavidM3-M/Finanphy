@@ -25,5 +25,5 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false
   },
-  "include": ["src", "src/types"]
+  "include": ["src", "src/types", "src/data-source.ts"]
 }

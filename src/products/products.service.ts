@@ -1,8 +1,8 @@
 // src/products/products.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Product } from './product.entity';
+import { Product } from './entities/product.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 
@@ -24,9 +24,18 @@ export class ProductsService {
   }
 
   async create(dto: CreateProductDto): Promise<Product> {
+  try {
     const product = this.productsRepo.create(dto);
-    return this.productsRepo.save(product);
+    return await this.productsRepo.save(product);
+  } catch (error) {
+    if (error.code === '23505') {
+      // Código de error de Postgres para violación de restricción única
+      throw new ConflictException('El SKU ya está registrado');
+    }
+    throw new InternalServerErrorException('Error al crear el producto');
   }
+}
+
 
   async update(id: number, dto: UpdateProductDto): Promise<Product> {
     const product = await this.findOne(id);
@@ -34,8 +43,9 @@ export class ProductsService {
     return this.productsRepo.save(product);
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: number): Promise< {message: string}> {
     const product = await this.findOne(id);
     await this.productsRepo.remove(product);
+    return {message: "Producto eliminado correctamente"}
   }
 }

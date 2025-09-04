@@ -39,6 +39,6 @@ export class AuthController {
   @Roles(Role.Admin)
   @Get('admin')
   getAdminData(@CurrentUser() admin: UserEntity) {
-    return `Hola ${admin.firstName}, eres administrador`;
+    return `Hey ${admin.firstName}, you're an admin`;
   }
 }

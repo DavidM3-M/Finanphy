@@ -8,24 +8,28 @@ async function bootstrap() {
   const app = await NestFactory.createApplicationContext(AppModule);
   const usersService = app.get(UsersService);
 
-  const existing = await usersService.findByEmail('admin@finanphy.com');
-  if (existing) {
-    console.log('Admin ya existe. Seed cancelado.');
-    return;
+  try {
+    const existing = await usersService.findByEmail('admin@finanphy.com');
+    if (existing) {
+      console.log('Admin already exists. Seed cancelled.');
+    } else {
+      const hashedPassword = await bcrypt.hash('admin123', 10);
+
+      await usersService.create({
+        firstName: 'Admin',
+        lastName: 'Root',
+        email: 'admin@finanphy.com',
+        password: hashedPassword,
+        role: Role.Admin,
+      });
+
+      console.log('admin created');
+    }
+  } catch (error) {
+    console.error('error wuth seed.', error);
+  } finally {
+    await app.close();
   }
-
-  const hashedPassword = await bcrypt.hash('admin123', 10);
-
-  await usersService.create({
-    firstName: 'Admin',
-    lastName: 'Root',
-    email: 'admin@finanphy.com',
-    password: hashedPassword,
-    role: Role.Admin,
-  });
-
-  console.log('Admin creado exitosamente');
-  await app.close();
 }
 
 bootstrap();

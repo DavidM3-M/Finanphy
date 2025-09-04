@@ -11,10 +11,11 @@ import { AuthModule } from './auth/auth.module';
 
 // Módulos Camilo
 import { FinanceModule } from './finance/finance.module';
-import { InventoryModule } from './inventory/inventory.module';
 import { ProductsModule } from './products/products.module';
-import { ExpensesModule } from './expenses/expenses.module';
 import { OrdersModule } from './orders/orders.module';
+import { CompaniesModule } from './companies/companies.module';
+import { CompaniesController } from './companies.controller';
+import { CompaniesService } from './companies.service';
 
 @Module({
   imports: [
@@ -31,11 +32,13 @@ import { OrdersModule } from './orders/orders.module';
           password: process.env.POSTGRES_PASSWORD,
           database: process.env.POSTGRES_DATABASE,
           entities: [__dirname + '/**/*.entity{.ts,.js}'],
-          synchronize: true,
+          synchronize: false,
+          migrationsRun: true,
+          migrations: [__dirname + '/migrations/*{.ts,.js}'],
           ssl: process.env.POSTGRES_SSL === 'true',
           extra: {
             ssl: process.env.POSTGRES_SSL === 'true'
-              ? { rejectUnauthorized: false } // útil en desarrollo
+              ? { rejectUnauthorized: false } 
               : undefined,
           },
         };
@@ -44,12 +47,11 @@ import { OrdersModule } from './orders/orders.module';
     UsersModule,
     AuthModule,
     FinanceModule,
-    InventoryModule,
     ProductsModule,
-    ExpensesModule,
     OrdersModule,
+    CompaniesModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [AppController, CompaniesController],
+  providers: [AppService, CompaniesService],
 })
 export class AppModule {}

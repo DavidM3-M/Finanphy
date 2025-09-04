@@ -17,26 +17,27 @@ export class AuthService {
     if (existing) {
       throw new UnauthorizedException('Email ya registrado');
     }
+
     const hashedPassword = await bcrypt.hash(dto.password, 10);
     const user = await this.usersService.create({
-    firstName: dto.firstName,
-    lastName: dto.lastName,
-    email: dto.email,
-    password: hashedPassword,
+      firstName: dto.firstName,
+      lastName: dto.lastName,
+      email: dto.email,
+      password: hashedPassword,
     });
 
-    const payload = { 
+    const payload = {
       sub: user.id,
       email: user.email,
       isActive: user.isActive,
-      role: user.role
+      role: user.role,
     };
+
     const token = await this.jwtService.signAsync(payload);
     return { access_token: token };
-        
   }
-    //ingreso al sistema
-   async login(dto: LoginDto) {
+
+  async login(dto: LoginDto) {
     const user = await this.usersService.findByEmail(dto.email);
     if (!user) throw new UnauthorizedException('Usuario no encontrado');
 
@@ -47,11 +48,10 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       isActive: user.isActive,
+      role: user.role,
     };
 
-    //retorno de token de acceso
     const token = await this.jwtService.signAsync(payload);
     return { access_token: token };
   }
-
 }

@@ -1,10 +1,11 @@
-import { Role } from "src/auth/enums/role.enum";
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Role } from "../../auth/enums/role.enum";
+import { Company } from "../../companies/entities/company.entity";
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity()
 export class UserEntity {
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+    @PrimaryGeneratedColumn()
+    id: number;
 
     @Column()
     firstName: string;
@@ -23,4 +24,8 @@ export class UserEntity {
 
     @Column({ default: true })
     isActive: boolean;
+
+    @OneToMany(() => Company, company => company.user)
+    companies: Company[];
+
 }

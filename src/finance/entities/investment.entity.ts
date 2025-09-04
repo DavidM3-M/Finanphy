@@ -1,5 +1,6 @@
 // src/finance/investment.entity.ts
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Company } from '../../companies/entities/company.entity';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne } from 'typeorm';
 
 @Entity()
 export class Investment {
@@ -32,5 +33,6 @@ export class Investment {
   @Column({ type: 'timestamp', nullable: true })
   dueDate?: Date; //fecha vencimiento
 
-  
+  @ManyToOne(() => Company, company => company.investments)
+  company: Company;
 }
