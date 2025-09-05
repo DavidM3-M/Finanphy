@@ -7,14 +7,22 @@ async function bootstrap() {
   
   app.enableCors({
   origin: (origin, callback) => {
-    const allowedOrigins = ['http://localhost:3000', 'http://localhost:3001'];
-    if (allowedOrigins.includes(origin)) {
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'https://finanphy.com',
+      'https://finanphy-dev-auth.onrender.com'
+    ];
+
+    if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      console.warn(`Blocked by CORS: ${origin}`);
+      callback(null, false); // No error, solo rechaza silenciosamente
     }
   },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
 });
 
   await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
