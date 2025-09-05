@@ -6,12 +6,17 @@ export class AddUserIdToCompany1756967529774 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     // 1. Crear usuario dummy si no existe
     await queryRunner.query(`
-      INSERT INTO "user_entity" (id, email, password)
-      SELECT '00000000-0000-0000-0000-000000000001', 'placeholder@system.local', 'hashed'
-      WHERE NOT EXISTS (
-        SELECT 1 FROM "user_entity" WHERE id = '00000000-0000-0000-0000-000000000001'
-      );
-    `);
+    INSERT INTO "user_entity" (id, email, password, firstName, lastName)
+    SELECT
+      '00000000-0000-0000-0000-000000000001',
+      'placeholder@system.local',
+      'hashed',
+      'System',
+      'Placeholder'
+    WHERE NOT EXISTS (
+      SELECT 1 FROM "user_entity" WHERE id = '00000000-0000-0000-0000-000000000001'
+    );
+  `);
 
     // 2. Asignar ese userId a compañías huérfanas
     await queryRunner.query(`
