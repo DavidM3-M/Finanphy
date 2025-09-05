@@ -11,7 +11,7 @@ export class Company {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column('uuid')
   userId: string;
 
   // Legal identity

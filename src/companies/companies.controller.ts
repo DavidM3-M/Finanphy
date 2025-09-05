@@ -35,21 +35,21 @@ export class CompaniesController {
   }
 
   @Get(':id')
-  getCompanyById(@Param('id') id: number) {
+  getCompanyById(@Param('id') id: string) {
     return this.service.findById(id);
   }
 
   @Patch(':id')
   updateCompany(
-    @Param('id') id: number,
+    @Param('id') id: string,
     @Body() dto: UpdateCompanyDto,
     @Req() req,
   ) {
-    return this.service.update(id, dto, req.user.id); // 👈 validación de propiedad
+    return this.service.update(id, dto, req.user.id);
   }
 
   @Delete(':id')
-  deleteCompany(@Param('id') id: number, @Req() req) {
-    return this.service.delete(id, req.user.id); // 👈 validación de propiedad
+  deleteCompany(@Param('id') id: string, @Req() req) {
+    return this.service.delete(id, req.user.id);
   }
 }

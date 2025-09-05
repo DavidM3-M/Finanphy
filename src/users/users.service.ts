@@ -17,9 +17,8 @@ export class UsersService {
   }
 
   async findById(id: string): Promise<UserEntity | null> {
-  const numericId = parseInt(id, 10);
-  return this.usersRepository.findOneBy({ id: numericId });
-}
+    return this.usersRepository.findOneBy({ id });
+  }
 
   async findAll(): Promise<UserEntity[]> {
     return this.usersRepository.find();
