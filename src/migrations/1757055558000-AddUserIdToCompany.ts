@@ -1,8 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddUserIdToCompany1756967529774 implements MigrationInterface {
-  name = 'AddUserIdToCompany1756967529774';
-
+export class AddUserIdToCompany1757055558000 implements MigrationInterface {
+  name = 'AddUserIdToCompany1757055558000';
   public async up(queryRunner: QueryRunner): Promise<void> {
     // 1. Crear usuario dummy si no existe
     await queryRunner.query(`
@@ -16,7 +15,7 @@ export class AddUserIdToCompany1756967529774 implements MigrationInterface {
     WHERE NOT EXISTS (
       SELECT 1 FROM "user_entity" WHERE "id" = '00000000-0000-0000-0000-000000000001'
     );
-  `);
+  ` );
 
     // 2. Asignar ese userId a compañías huérfanas
     await queryRunner.query(`

@@ -12,7 +12,7 @@ export class Company {
   id: number;
 
   @Column()
-  userId: number;
+  userId: string;
 
   // Legal identity
   @Column()
