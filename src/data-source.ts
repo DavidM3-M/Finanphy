@@ -3,7 +3,7 @@ import { DataSource } from 'typeorm';
 import { Company } from './companies/entities/company.entity';
 import { Income } from './finance/entities/income.entity';
 import { Expense } from './finance/entities/expense.entity';
-import { Investment} from './finance/entities/investment.entity';
+import { Investment } from './finance/entities/investment.entity';
 import { Product } from './products/entities/product.entity';
 import { UserEntity } from './users/entities/user.entity';
 import * as dotenv from 'dotenv';
@@ -28,13 +28,13 @@ console.log('DATABASE:', process.env.POSTGRES_DATABASE);
 export const AppDataSource = new DataSource({
   type: 'postgres',
   host: process.env.POSTGRES_HOST || 'localhost',
-  port: parseInt(process.env.POSTGRES_PORT || '5436', 10),
+  port: parseInt(process.env.POSTGRES_PORT || '5432', 10),
   username: process.env.POSTGRES_USERNAME || 'postgres',
   password: process.env.POSTGRES_PASSWORD || 'postgres',
   database: process.env.POSTGRES_DATABASE || 'finanphy',
-  synchronize: false,
-  logging: false,
   entities: [Company, UserEntity, Income, Expense, Investment, Product],
   migrations: ['src/migrations/*.ts'],
+  synchronize: false,
+  logging: false,
   ssl: process.env.POSTGRES_SSL === 'true',
 });
