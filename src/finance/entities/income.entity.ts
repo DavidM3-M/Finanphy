@@ -1,6 +1,13 @@
 // src/finance/income.entity.ts
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Company } from '../../companies/entities/company.entity';
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne } from 'typeorm';
 
 @Entity()
 export class Income {
@@ -25,8 +32,7 @@ export class Income {
   @Column({ type: 'timestamp', nullable: true })
   dueDate?: Date;
 
-  @ManyToOne(() => Company, company => company.incomes)
+  @ManyToOne(() => Company, company => company.incomes, { nullable: false })
+  @JoinColumn({ name: 'companyId' })
   company: Company;
-
-
 }

@@ -1,5 +1,13 @@
 // src/finance/dto/create-expense.dto.ts
-import { IsNumber, IsString, IsOptional, Min, IsDateString } from 'class-validator';
+import {
+  IsNumber,
+  IsString,
+  IsOptional,
+  Min,
+  Length,
+  IsDateString,
+  IsUUID,
+} from 'class-validator';
 
 export class CreateExpenseDto {
   @IsNumber()
@@ -7,17 +15,23 @@ export class CreateExpenseDto {
   amount: number;
 
   @IsString()
-  category: string;  // Ej: "Compra de insumos", "Pago de servicios", etc.
+  @Length(3, 50, { message: 'La categoría debe tener entre 3 y 50 caracteres' })
+  category: string;
 
   @IsOptional()
   @IsString()
-  supplier?: string;  // Proveedor opcional
+  @Length(3, 100, { message: 'El proveedor debe tener entre 3 y 100 caracteres' })
+  supplier?: string;
 
   @IsOptional()
-  @IsDateString({},{ message: 'La fecha de salida debe ser una fecha válida' })
-  exitDate?: string;
+  @IsDateString({}, { message: 'La fecha de entrada debe ser válida' })
+  entryDate?: string;
 
   @IsOptional()
-  @IsDateString({},{ message: 'La fecha de vencimiento debe ser una fecha válida' })
+  @IsDateString({}, { message: 'La fecha de vencimiento debe ser válida' })
   dueDate?: string;
+
+  @IsOptional()
+  @IsUUID('4', { message: 'El ID de empresa debe ser un UUID válido' })
+  companyId?: string;
 }
