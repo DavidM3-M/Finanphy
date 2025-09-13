@@ -6,7 +6,7 @@ export class InitSchemaExtended1757104635223 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     // 1. Crear tabla user_entity
     await queryRunner.query(`
-      CREATE TABLE IF NOT EXISTS "user_entity" (
+      CREATE TABLE "user_entity" (
         "id" uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
         "firstName" varchar NOT NULL,
         "lastName" varchar NOT NULL,
@@ -19,7 +19,7 @@ export class InitSchemaExtended1757104635223 implements MigrationInterface {
 
     // 2. Crear tabla companies
     await queryRunner.query(`
-      CREATE TABLE IF NOT EXISTS "companies" (
+      CREATE TABLE "companies" (
         "id" uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
         "userId" uuid NOT NULL,
         "tradeName" varchar NOT NULL,
@@ -52,22 +52,15 @@ export class InitSchemaExtended1757104635223 implements MigrationInterface {
     `);
 
     // 6. Clave foránea entre companies y user_entity
-    const constraintExists = await queryRunner.query(`
-    SELECT 1 FROM information_schema.table_constraints
-    WHERE constraint_name = 'FK_companies_userId' AND table_name = 'companies'
-    `);
-
-    if (constraintExists.length === 0) {
     await queryRunner.query(`
-        ALTER TABLE "companies"
-        ADD CONSTRAINT "FK_companies_userId"
-        FOREIGN KEY ("userId") REFERENCES "user_entity"("id") ON DELETE CASCADE ON UPDATE CASCADE
+      ALTER TABLE "companies"
+      ADD CONSTRAINT "FK_companies_userId"
+      FOREIGN KEY ("userId") REFERENCES "user_entity"("id") ON DELETE CASCADE ON UPDATE CASCADE
     `);
-    }
 
     // 7. Crear tabla income
     await queryRunner.query(`
-      CREATE TABLE IF NOT EXISTS "income" (
+      CREATE TABLE "income" (
         "id" SERIAL PRIMARY KEY,
         "amount" DECIMAL(12,2) NOT NULL,
         "category" VARCHAR NOT NULL,
@@ -87,7 +80,7 @@ export class InitSchemaExtended1757104635223 implements MigrationInterface {
 
     // 8. Crear tabla expense
     await queryRunner.query(`
-      CREATE TABLE IF NOT EXISTS "expense" (
+      CREATE TABLE "expense" (
         "id" SERIAL PRIMARY KEY,
         "amount" DECIMAL(12,2) NOT NULL,
         "category" VARCHAR NOT NULL,
@@ -107,7 +100,7 @@ export class InitSchemaExtended1757104635223 implements MigrationInterface {
 
     // 9. Crear tabla investment
     await queryRunner.query(`
-      CREATE TABLE IF NOT EXISTS "investment" (
+      CREATE TABLE "investment" (
         "id" SERIAL PRIMARY KEY,
         "amount" DECIMAL NOT NULL,
         "category" VARCHAR NOT NULL,
@@ -129,7 +122,7 @@ export class InitSchemaExtended1757104635223 implements MigrationInterface {
 
     // 10. Crear tabla product
     await queryRunner.query(`
-      CREATE TABLE IF NOT EXISTS "product" (
+      CREATE TABLE "product" (
         "id" SERIAL PRIMARY KEY,
         "name" VARCHAR NOT NULL,
         "sku" VARCHAR UNIQUE NOT NULL,
