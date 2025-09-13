@@ -16,6 +16,7 @@ import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { Role } from 'src/auth/enums/role.enum';
+import { Public } from 'src/auth/decorators/public.decorator';
 
 @UseGuards(AuthGuard, RolesGuard)
 @Roles(Role.User, Role.Admin)
