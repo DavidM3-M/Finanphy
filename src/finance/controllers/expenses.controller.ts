@@ -1,4 +1,3 @@
-// src/finance/expenses.controller.ts
 import {
   Controller,
   Get,
@@ -15,7 +14,7 @@ import { CreateExpenseDto } from '../dto/create-expense.dto';
 import { UpdateExpenseDto } from '../dto/update-expense.dto';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { Role } from 'src/auth/enums/role.enum';
-import { AuthGuard } from '@nestjs/passport';
+import { AuthGuard } from 'src/auth/guards/auth.guard'; // ✅ tu guardia personalizado
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { UserEntity } from 'src/users/entities/user.entity';
@@ -32,7 +31,10 @@ export class ExpensesController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: UserEntity) {
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: UserEntity,
+  ) {
     return this.expensesService.findOneByUser(id, user.id);
   }
 
@@ -51,7 +53,10 @@ export class ExpensesController {
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: UserEntity) {
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: UserEntity,
+  ) {
     return this.expensesService.removeForUser(id, user.id);
   }
 }
