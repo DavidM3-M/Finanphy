@@ -1,63 +1,85 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class FixCompanyRelationsAndConstraints1757105000000 implements MigrationInterface {
-  name = 'FixCompanyRelationsAndConstraints1757105000000';
+export class FixCompanyRelationsAndConstraints1757105000000
+  implements MigrationInterface
+{
+  name = "FixCompanyRelationsAndConstraints1757105000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // PRODUCT: Verificar columna companyId
-    const productColumn = await queryRunner.query(`
-      SELECT column_name FROM information_schema.columns
-      WHERE table_name = 'product' AND column_name = 'companyId'
-    `);
+    // Helper inline para validar existencia de columna
+    const ensureColumn = async (
+      table: string,
+      column: string,
+      definition: string
+    ) => {
+      const exists = await queryRunner.query(
+        `
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = '${table}'
+          AND column_name = '${column}';
+      `
+      );
+      if (exists.length === 0) {
+        await queryRunner.query(
+          `ALTER TABLE "${table}" ADD COLUMN ${definition};`
+        );
+      }
+    };
 
-    if (productColumn.length === 0) {
-      await queryRunner.query(`ALTER TABLE "product" ADD COLUMN "companyId" UUID`);
+    // Helper inline para validar existencia de FK
+    const ensureFK = async (
+      table: string,
+      fkName: string,
+      column: string,
+      referencedTable: string,
+      referencedColumn: string = "id"
+    ) => {
+      const fkExists = await queryRunner.query(
+        `
+        SELECT constraint_name
+        FROM information_schema.table_constraints
+        WHERE table_name = '${table}'
+          AND constraint_type = 'FOREIGN KEY'
+          AND constraint_name = '${fkName}';
+      `
+      );
+      if (fkExists.length === 0) {
+        await queryRunner.query(
+          `
+          ALTER TABLE "${table}"
+          ADD CONSTRAINT "${fkName}"
+          FOREIGN KEY ("${column}") REFERENCES "${referencedTable}"("${referencedColumn}")
+          ON DELETE CASCADE ON UPDATE CASCADE;
+        `
+        );
+      }
+    };
+
+    // Tablas objetivo
+    const tables = ["product", "income", "expense", "investment"];
+
+    for (const tbl of tables) {
+      // 1. Asegurar companyId
+      await ensureColumn(tbl, "companyId", `"companyId" UUID`);
+
+      // 2. Asegurar FK hacia companies
+      await ensureFK(
+        tbl,
+        `FK_${tbl}_companyId`,
+        "companyId",
+        "companies"
+      );
     }
-
-    // PRODUCT: Verificar FK
-    const productFK = await queryRunner.query(`
-      SELECT constraint_name FROM information_schema.table_constraints
-      WHERE table_name = 'product' AND constraint_type = 'FOREIGN KEY'
-    `);
-
-    if (!productFK.some((row: any) => row.constraint_name === 'FK_product_companyId')) {
-      await queryRunner.query(`
-        ALTER TABLE "product"
-        ADD CONSTRAINT "FK_product_companyId"
-        FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE CASCADE ON UPDATE CASCADE
-      `);
-    }
-
-    // INCOME: Verificar columna companyId
-    const incomeColumn = await queryRunner.query(`
-      SELECT column_name FROM information_schema.columns
-      WHERE table_name = 'income' AND column_name = 'companyId'
-    `);
-
-    if (incomeColumn.length === 0) {
-      await queryRunner.query(`ALTER TABLE "income" ADD COLUMN "companyId" UUID`);
-    }
-
-    // INCOME: Verificar FK
-    const incomeFK = await queryRunner.query(`
-      SELECT constraint_name FROM information_schema.table_constraints
-      WHERE table_name = 'income' AND constraint_type = 'FOREIGN KEY'
-    `);
-
-    if (!incomeFK.some((row: any) => row.constraint_name === 'FK_income_companyId')) {
-      await queryRunner.query(`
-        ALTER TABLE "income"
-        ADD CONSTRAINT "FK_income_companyId"
-        FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE CASCADE ON UPDATE CASCADE
-      `);
-    }
-
-    // Repite el patrón para expense, investment, etc. si lo deseas
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`ALTER TABLE "product" DROP CONSTRAINT IF EXISTS "FK_product_companyId"`);
-    await queryRunner.query(`ALTER TABLE "income" DROP CONSTRAINT IF EXISTS "FK_income_companyId"`);
-    // No eliminamos columnas en down por seguridad
+    // Eliminamos sólo las FKs; mantenemos columnas por compatibilidad
+    const tables = ["product", "income", "expense", "investment"];
+    for (const tbl of tables) {
+      await queryRunner.query(
+        `ALTER TABLE "${tbl}" DROP CONSTRAINT IF EXISTS "FK_${tbl}_companyId";`
+      );
+    }
   }
 }
