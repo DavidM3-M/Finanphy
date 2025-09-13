@@ -32,6 +32,9 @@ export class Income {
   @Column({ type: 'timestamp', nullable: true })
   dueDate?: Date;
 
+  @Column({ type: 'uuid' })
+  companyId: string;
+
   @ManyToOne(() => Company, company => company.incomes, { nullable: false })
   @JoinColumn({ name: 'companyId' })
   company: Company;

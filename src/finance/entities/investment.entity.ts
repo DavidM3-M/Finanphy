@@ -33,6 +33,9 @@ export class Investment {
   @Column({ type: 'timestamp', nullable: true })
   dueDate?: Date; //fecha vencimiento
 
+  @Column({ type: 'uuid' })
+  companyId: string;
+
   @ManyToOne(() => Company, company => company.investments)
   @JoinColumn({ name: 'companyId' })
   company: Company;
