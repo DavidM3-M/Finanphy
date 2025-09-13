@@ -1,6 +1,6 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class AddUniqueSkuPerCompanyToProduct1757104635224 implements MigrationInterface {
+export class InitSchemaExtended1757104635223 implements MigrationInterface {
   name = 'InitSchemaExtended1757104635223';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
