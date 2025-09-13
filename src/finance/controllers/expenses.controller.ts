@@ -20,7 +20,7 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { UserEntity } from 'src/users/entities/user.entity';
 
-@UseGuards(AuthGuard('jwt'), RolesGuard)
+@UseGuards(AuthGuard, RolesGuard)
 @Roles(Role.User)
 @Controller('expenses')
 export class ExpensesController {
