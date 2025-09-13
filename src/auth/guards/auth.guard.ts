@@ -3,52 +3,54 @@ import {
   CanActivate,
   ExecutionContext,
   UnauthorizedException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import * as jwt from 'jsonwebtoken';
-import { IS_PUBLIC_KEY } from '../decorators/public.decorator'; // ← asegúrate de tener este decorador
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    // 1. Verifica si la ruta es pública
     const isPublic = this.reflector.getAllAndOverride<boolean>(
       IS_PUBLIC_KEY,
       [context.getHandler(), context.getClass()],
     );
     if (isPublic) return true;
 
-    // 2. Verifica el token
     const req = context.switchToHttp().getRequest();
-    const authHeader = req.headers.authorization;
+    const authHeader = req.headers['authorization'];
 
-    if (!authHeader) throw new UnauthorizedException('Missing token');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new UnauthorizedException('Token no enviado o mal formado');
+    }
 
-    const token = authHeader.split(' ')[1];
+    const token = authHeader.replace('Bearer ', '').trim();
     const secret = process.env.JWT_SECRET;
 
     if (!secret) {
-      throw new Error('JWT_SECRET is not defined');
+      throw new InternalServerErrorException('JWT_SECRET no está definido');
     }
 
     try {
       const decoded = jwt.verify(token, secret);
 
-      if (typeof decoded === 'object' && 'sub' in decoded) {
-        req.user = {
-          id: decoded.sub,
-          email: decoded.email,
-          role: decoded.role,
-          isActive: decoded.isActive,
-        };
-        return true;
+      if (typeof decoded !== 'object' || !('sub' in decoded)) {
+        throw new UnauthorizedException('Payload inválido');
       }
 
-      throw new UnauthorizedException('Invalid token payload');
-    } catch {
-      throw new UnauthorizedException('Invalid token');
+      req.user = {
+        id: decoded['sub'],
+        email: decoded['email'],
+        role: decoded['role'],
+        isActive: decoded['isActive'],
+      };
+
+      return true;
+    } catch (err) {
+      throw new UnauthorizedException(`Token inválido: ${err.message}`);
     }
   }
 }
