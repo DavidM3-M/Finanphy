@@ -12,6 +12,7 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "npm run build && npm run migrate && node dist/main.js",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "generate:migration": "ts-node -r dotenv/config ./node_modules/typeorm/cli.js migration:generate src/migrations/AddFiscalAddressToCompany -d src/cli-data-source.ts",
     "typeorm": "ts-node -r dotenv/config ./node_modules/typeorm/cli.js",
     "test": "jest",
     "test:watch": "jest --watch",
