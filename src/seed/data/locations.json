@@ -1,0 +1,10 @@
+[
+  {
+    "department": "Antioquia",
+    "municipalities": ["Medellín", "Envigado", "Bello"]
+  },
+  {
+    "department": "Cundinamarca",
+    "municipalities": ["Bogotá", "Soacha", "Chía"]
+  }
+]
