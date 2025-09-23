@@ -1,6 +1,8 @@
 // src/products/product.entity.ts
 import { Company } from '../../companies/entities/company.entity';
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Index } from 'typeorm';
+
+@Index(['sku', 'companyId'], { unique: true })
 
 @Entity()
 export class Product {
@@ -10,7 +12,7 @@ export class Product {
   @Column()
   name: string;
 
-  @Column({ unique: true })
+  @Column()
   sku: string;
 
   @Column({ nullable: true })
@@ -31,6 +33,11 @@ description: string;
   @Column({ default: 0 })
   stock: number;
 
+   @Column({ type: 'uuid' }) // 👈 necesario para el índice
+  companyId: string;
+
+
   @ManyToOne(() => Company, company => company.products)
+  @JoinColumn({ name: 'companyId' })
   company: Company;
 }

@@ -1,5 +1,15 @@
 // src/finance/incomes.controller.ts
-import { Controller, Get, Post, Param, Body, ParseIntPipe, Put, Delete, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Param,
+  Body,
+  ParseIntPipe,
+  Put,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { IncomesService } from '../services/incomes.service';
 import { CreateIncomeDto } from '../dto/create-income.dto';
 import { UpdateIncomeDto } from '../dto/update-income.dto';
@@ -7,6 +17,8 @@ import { Roles } from 'src/auth/decorators/roles.decorator';
 import { Role } from 'src/auth/enums/role.enum';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
+import { UserEntity } from 'src/users/entities/user.entity';
 
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 @Roles(Role.User)
@@ -15,28 +27,31 @@ export class IncomesController {
   constructor(private readonly incomesService: IncomesService) {}
 
   @Get()
-  findAll() {
-    return this.incomesService.findAll();
+  findAll(@CurrentUser() user: UserEntity) {
+    return this.incomesService.findAllByUser(user.id);
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.incomesService.findOne(id);
+  findOne(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: UserEntity) {
+    return this.incomesService.findOneByUser(id, user.id);
   }
 
   @Post()
-  create(@Body() dto: CreateIncomeDto) {
-    return this.incomesService.create(dto);
-
+  create(@Body() dto: CreateIncomeDto, @CurrentUser() user: UserEntity) {
+    return this.incomesService.createForUser(dto, user.id);
   }
- 
+
   @Put(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateIncomeDto) {
-    return this.incomesService.update(id, dto);
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateIncomeDto,
+    @CurrentUser() user: UserEntity,
+  ) {
+    return this.incomesService.updateForUser(id, dto, user.id);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.incomesService.remove(id);
+  remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: UserEntity) {
+    return this.incomesService.removeForUser(id, user.id);
   }
 }

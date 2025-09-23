@@ -1,6 +1,6 @@
 // src/finance/expense.entity.ts
 import { Company } from '../../companies/entities/company.entity';
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 
 @Entity()
 export class Expense {
@@ -25,7 +25,11 @@ export class Expense {
   @Column({ type: 'timestamp', nullable: true })
   dueDate?: Date;
 
+  @Column({ type: 'uuid' })
+  companyId: string;
+
   @ManyToOne(() => Company, company => company.expenses)
+  @JoinColumn({ name: 'companyId' })
   company: Company;
 
 
