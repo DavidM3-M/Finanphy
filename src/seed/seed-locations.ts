@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../app.module';
 import { DataSource } from 'typeorm';
 import { Company } from '../companies/entities/company.entity';
+import { UserEntity } from '../users/entities/user.entity'; // Importar la entidad de usuario
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -15,18 +16,29 @@ async function bootstrap() {
     const rawData = fs.readFileSync(filePath, 'utf-8');
     const locations = JSON.parse(rawData);
 
+    // Repositorios
+    const userRepo = dataSource.getRepository(UserEntity);
+    const companyRepo = dataSource.getRepository(Company);
+
+    // Buscar admin existente
+    const adminUser = await userRepo.findOneBy({ email: 'admin@finanphy.com' });
+    if (!adminUser) {
+      throw new Error('No existe el usuario admin. Crea primero el seed de admin.');
+    }
+
     // Recorremos departamentos y municipios
     for (const loc of locations) {
       for (const city of loc.municipalities) {
-        const company = dataSource.getRepository(Company).create({
+        const company = companyRepo.create({
           tradeName: `${city} Test Company`,
           legalName: `${city} Legal`,
           companyType: 'S.A.S.',
           taxId: '123456',
           city: city,
           state: loc.department,
+          userId: adminUser.id, // Asignar el usuario obligatorio
         });
-        await dataSource.getRepository(Company).save(company);
+        await companyRepo.save(company);
       }
     }
 
