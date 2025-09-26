@@ -4,6 +4,7 @@ import { Income } from '../../finance/entities/income.entity';
 import { Investment } from '../../finance/entities/investment.entity';
 import { Product } from '../../products/entities/product.entity';
 import { UserEntity } from '../../users/entities/user.entity';
+import { Order } from 'src/orders/entity/order.entity';
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'typeorm';
 
 @Entity('companies')
@@ -73,5 +74,8 @@ export class Company {
 
   @OneToMany(() => Product, product => product.company)
   products: Product[];
+
+  @OneToMany(() => Order, order => order.company)
+  orders: Order[];
 
 }
