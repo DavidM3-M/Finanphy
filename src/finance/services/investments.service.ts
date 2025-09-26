@@ -1,10 +1,9 @@
-import { Injectable, NotFoundException} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Investment } from '../entities/investment.entity';
+import { Investment } from '../entities/investment.entity'; 
 import { CreateInvestmentDto } from '../dto/create-investment.dto';
 import { UpdateInvestmentDto } from '../dto/update-investment.dto';
-
 
 @Injectable()
 export class InvestmentsService {
@@ -13,8 +12,16 @@ export class InvestmentsService {
     private investmentsRepository: Repository<Investment>,
   ) {}
 
-  create(data: CreateInvestmentDto) {
-    const newInvestment = this.investmentsRepository.create(data);
+  async create(dto: CreateInvestmentDto) {
+    const newInvestment = this.investmentsRepository.create({
+      amount: dto.amount,
+      category: dto.category,
+      invoiceNumber: dto.invoiceNumber,
+      entryDate: dto.entryDate ? new Date(dto.entryDate) : undefined,
+      exitDate: dto.exitDate ? new Date(dto.exitDate) : undefined,
+      dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
+    });
+
     return this.investmentsRepository.save(newInvestment);
   }
 
@@ -36,9 +43,16 @@ export class InvestmentsService {
     return { message: 'Inversión eliminada correctamente' };
   }
 
-  async update(id:number, dto: UpdateInvestmentDto){
-    const investment = await this.findOne(id); // validar existencia
-    Object.assign(investment, dto); // actualiza campos que llegan
+  async update(id: number, dto: UpdateInvestmentDto) {
+    const investment = await this.findOne(id);
+
+    if (dto.amount !== undefined) investment.amount = dto.amount;
+    if (dto.category !== undefined) investment.category = dto.category;
+    if (dto.invoiceNumber !== undefined) investment.invoiceNumber = dto.invoiceNumber;
+    if (dto.entryDate !== undefined) investment.entryDate = new Date(dto.entryDate);
+    if (dto.exitDate !== undefined) investment.exitDate = new Date(dto.exitDate);
+    if (dto.dueDate !== undefined) investment.dueDate = new Date(dto.dueDate);
+
     return this.investmentsRepository.save(investment);
   }
 }

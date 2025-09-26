@@ -49,50 +49,46 @@ export class IncomesService {
     let company: Company;
 
     if (dto.companyId) {
-      company = await validateCompanyOwnership(this.companyRepo, dto.companyId, userId);
-    } else {
-      const companies = await this.companyRepo.find({ where: { userId } });
+    company = await validateCompanyOwnership(this.companyRepo, dto.companyId, userId);
+  } else {
+    const companies = await this.companyRepo.find({ where: { userId } });
 
-      if (companies.length === 0) {
-        throw new ForbiddenException('No tienes empresas registradas');
-      }
-
-      if (companies.length > 1) {
-        throw new BadRequestException('Debes especificar la empresa');
-      }
-
-      company = companies[0];
+    if (companies.length === 0) {
+      throw new ForbiddenException('No tienes empresas registradas');
     }
 
-    const income = this.incomesRepo.create({
-      amount: dto.amount,
-      category: dto.category,
-      invoiceNumber: dto.invoiceNumber,
-      entryDate: dto.entryDate ? new Date(dto.entryDate) : undefined,
-      dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
-      company,
-    });
+    if (companies.length > 1) {
+      throw new BadRequestException('Debes especificar la empresa');
+    }
 
-    return this.incomesRepo.save(income);
+    company = companies[0];
   }
+
+  //  Blindaje: asignamos solo campos permitidos
+  const income = this.incomesRepo.create({
+    amount: dto.amount,
+    category: dto.category,
+    invoiceNumber: dto.invoiceNumber,
+    entryDate: dto.entryDate ? new Date(dto.entryDate) : undefined,
+    dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
+    company,
+  });
+
+  return this.incomesRepo.save(income);
+}
 
   async updateForUser(id: number, dto: UpdateIncomeDto, userId: string) {
     const income = await this.findOneByUser(id, userId);
 
-    income.amount = dto.amount ?? income.amount;
-    income.category = dto.category ?? income.category;
-    income.invoiceNumber = dto.invoiceNumber ?? income.invoiceNumber;
+    //  Solo actualizamos campos permitidos
+  if (dto.amount !== undefined) income.amount = dto.amount;
+  if (dto.category !== undefined) income.category = dto.category;
+  if (dto.invoiceNumber !== undefined) income.invoiceNumber = dto.invoiceNumber;
+  if (dto.entryDate !== undefined) income.entryDate = new Date(dto.entryDate);
+  if (dto.dueDate !== undefined) income.dueDate = new Date(dto.dueDate);
 
-    if (dto.entryDate) {
-      income.entryDate = new Date(dto.entryDate);
-    }
-
-    if (dto.dueDate) {
-      income.dueDate = new Date(dto.dueDate);
-    }
-
-    return this.incomesRepo.save(income);
-  }
+  return this.incomesRepo.save(income);
+}
 
   async removeForUser(id: number, userId: string) {
     const income = await this.findOneByUser(id, userId);
