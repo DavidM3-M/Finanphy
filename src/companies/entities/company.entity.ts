@@ -1,4 +1,5 @@
 // src/companies/entities/company.entity.ts
+import { ClientOrder } from '../../client_orders/entities/client-order.entity';
 import { Expense } from '../../finance/entities/expense.entity';
 import { Income } from '../../finance/entities/income.entity';
 import { Investment } from '../../finance/entities/investment.entity';
@@ -9,69 +10,71 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'ty
 @Entity('companies')
 export class Company {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column('uuid')
-  userId: string;
+  userId!: string;
 
   // Legal identity
   @Column()
-  tradeName: string;
+  tradeName!: string;
 
   @Column()
-  legalName: string;
+  legalName!: string;
 
   @Column()
-  companyType: string; // e.g., S.A.S., LTDA, S.A.
+  companyType!: string; // e.g., S.A.S., LTDA, S.A.
 
   @Column()
-  taxId: string;
+  taxId!: string;
 
   @Column({ nullable: true })
-  taxRegistry: string;
+  taxRegistry!: string;
 
   @Column({ nullable: true })
-  businessPurpose: string;
+  businessPurpose!: string;
 
   // Contact and location
   @Column({ nullable: true })
-  companyEmail: string;
+  companyEmail!: string;
 
   @Column({ nullable: true })
-  companyPhone: string;
+  companyPhone!: string;
 
   @Column({ nullable: true })
-  fiscalAddress: string;
+  fiscalAddress!: string;
 
   @Column({ nullable: true })
-  city: string;
+  city!: string;
 
   @Column({ nullable: true })
-  state: string;
-
-  // Legal representative
-  @Column({ nullable: true })
-  representativeName: string;
+  state!: string;
 
   @Column({ nullable: true })
-  representativeDocument: string;
+  representativeName!: string;
 
   @Column({ nullable: true })
-  incorporationDate: string;
+  representativeDocument!: string;
+
+  @Column({ nullable: true })
+  incorporationDate!: string;
 
   @ManyToOne(() => UserEntity, user => user.companies)
-  user: UserEntity;
+  user!: UserEntity;
 
   @OneToMany(() => Income, income => income.company)
-  incomes: Income[];
+  incomes!: Income[];
 
   @OneToMany(() => Expense, expense => expense.company)
-  expenses: Expense[];
+  expenses!: Expense[];
 
   @OneToMany(() => Investment, investment => investment.company)
-  investments: Investment[];
+  investments!: Investment[];
 
   @OneToMany(() => Product, product => product.company)
-  products: Product[];
+  products!: Product[];
+
+  @OneToMany(() => ClientOrder, (order: ClientOrder) => order.company)
+  orders!: ClientOrder[];
 
 }

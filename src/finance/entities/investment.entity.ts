@@ -5,27 +5,26 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 @Entity()
 export class Investment {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column('decimal')
-  amount: number;
+  amount!: number;
 
   @Column()
-  category: string;
+  category!: string;
 
   @Column({ nullable: true })
   invoicenumber?: string;
 
-  // Fecha de creación automática
-  @CreateDateColumn()
-  createdAt: Date;
 
-  //  Fecha de actualización automática
+  @CreateDateColumn()
+  createdAt!: Date;
+
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-   entryDate: Date; //fecha entrada
+  entryDate!: Date; //fecha entrada
 
   @Column({ type: 'timestamp', nullable: true })
   exitDate?: Date; //fecha salida
@@ -34,9 +33,9 @@ export class Investment {
   dueDate?: Date; //fecha vencimiento
 
   @Column({ type: 'uuid' })
-  companyId: string;
+  companyId!: string;
 
   @ManyToOne(() => Company, company => company.investments)
   @JoinColumn({ name: 'companyId' })
-  company: Company;
+  company!: Company;
 }

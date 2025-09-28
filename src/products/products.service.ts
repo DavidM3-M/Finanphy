@@ -22,14 +22,28 @@ export class ProductsService {
     private readonly companyRepo: Repository<Company>,
   ) {}
 
+  // Vendedor: ver todos sus productos
   async findAllByUser(userId: string) {
     return this.productsRepo
       .createQueryBuilder('product')
       .leftJoin('product.company', 'company')
       .where('company.userId = :userId', { userId })
+      .orderBy('product.name', 'ASC')
       .getMany();
   }
 
+  // Cliente: ver catálogo público de una compañía
+  async findAllByCompany(companyId: string) {
+    const company = await this.companyRepo.findOne({ where: { id: companyId } });
+    if (!company) throw new NotFoundException('Compañía no encontrada');
+
+    return this.productsRepo.find({
+      where: { company: { id: companyId } },
+      order: { name: 'ASC' },
+    });
+  }
+
+  // Vendedor: ver un producto específico
   async findOneByUser(id: number, userId: string) {
     const product = await this.productsRepo.findOne({
       where: { id },
@@ -44,6 +58,7 @@ export class ProductsService {
     return product;
   }
 
+  // Vendedor: crear producto en una compañía
   async createForUser(dto: CreateProductDto, userId: string) {
     let company: Company;
 
@@ -87,6 +102,7 @@ export class ProductsService {
     return this.productsRepo.save(product);
   }
 
+  // Vendedor: actualizar producto
   async updateForUser(id: number, dto: UpdateProductDto, userId: string) {
     const product = await this.findOneByUser(id, userId);
 
@@ -102,6 +118,7 @@ export class ProductsService {
     return this.productsRepo.save(product);
   }
 
+  // Vendedor: eliminar producto
   async removeForUser(id: number, userId: string) {
     const product = await this.findOneByUser(id, userId);
     return this.productsRepo.remove(product);

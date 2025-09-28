@@ -7,37 +7,36 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Index } 
 @Entity()
 export class Product {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column()
-  name: string;
+  name!: string;
 
   @Column()
-  sku: string;
+  sku!: string;
 
   @Column({ nullable: true })
-description: string;
+  description!: string;
 
   @Column({ nullable: true })
-  category: string;
+  category!: string;
 
   @Column({ nullable: true })
-  imageUrl: string;
+  imageUrl!: string;
 
   @Column('decimal', { precision: 12, scale: 2 }) 
-  price: number;
+  price!: number;
 
   @Column('decimal', { precision: 12, scale: 2 })
-  cost: number;
+  cost!: number;
 
   @Column({ default: 0 })
-  stock: number;
+  stock!: number;
 
    @Column({ type: 'uuid' }) // 👈 necesario para el índice
-  companyId: string;
-
+  companyId!: string;
 
   @ManyToOne(() => Company, company => company.products)
   @JoinColumn({ name: 'companyId' })
-  company: Company;
+  company!: Company;
 }

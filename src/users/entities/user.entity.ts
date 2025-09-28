@@ -5,27 +5,27 @@ import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 @Entity()
 export class UserEntity {
     @PrimaryGeneratedColumn('uuid')
-    id: string;
+    id!: string;
 
     @Column()
-    firstName: string;
+    firstName!: string;
 
     @Column()
-    lastName: string;
+    lastName!: string;
 
     @Column()
-    email: string;
+    email!: string;
 
     @Column()
-    password: string;
+    password!: string;
 
     @Column({ type: 'enum', enum: Role, default: Role.User })
-    role: Role;
+    role!: Role;
 
     @Column({ default: true })
-    isActive: boolean;
+    isActive!: boolean;
 
     @OneToMany(() => Company, company => company.user)
-    companies: Company[];
+    companies!: Company[];
 
 }

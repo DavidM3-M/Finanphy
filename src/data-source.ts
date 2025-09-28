@@ -25,7 +25,8 @@ export const AppDataSource = new DataSource({
     path.join(__dirname, 'companies/entities/*.entity.{ts,js}'),
     path.join(__dirname, 'users/entities/*.entity.{ts,js}'),
     path.join(__dirname, 'finance/entities/*.entity.{ts,js}'),
-    path.join(__dirname, 'products/entities/*.entity.{ts,js}')
+    path.join(__dirname, 'products/entities/*.entity.{ts,js}'),
+    path.join(__dirname, 'client_orders/entities/*.entity.{ts,js}')
   ],
 
   migrations: [
