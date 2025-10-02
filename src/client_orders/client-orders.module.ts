@@ -6,6 +6,9 @@ import { ClientOrder } from './entities/client-order.entity';
 import { ClientOrderItem } from './entities/client-order-item.entity';
 import { Product } from '../products/entities/product.entity';
 import { UserEntity } from '../users/entities/user.entity';
+import { Company } from 'src/companies/entities/company.entity';
+import { ProductsModule } from 'src/products/products.module';
+import { CompaniesModule } from 'src/companies/companies.module';
 
 @Module({
   imports: [
@@ -14,7 +17,10 @@ import { UserEntity } from '../users/entities/user.entity';
       ClientOrderItem,
       Product,
       UserEntity,
+      Company
     ]),
+    ProductsModule,
+    CompaniesModule
   ],
   controllers: [ClientOrdersController],
   providers: [ClientOrdersService],
