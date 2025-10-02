@@ -5,6 +5,7 @@
   "scripts": {
     "seed": "ts-node src/seed/seed.ts",
     "build": "nest build",
+    "db:test": "ts-node -r tsconfig-paths/register src/db-test.ts",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "migration": "ts-node -P tsconfig.migration.json ./node_modules/typeorm/cli.js",
     "migration:run": "ts-node -P tsconfig.migration.json ./node_modules/typeorm/cli.js migration:run",
