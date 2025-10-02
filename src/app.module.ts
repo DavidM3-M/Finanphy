@@ -10,9 +10,8 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { FinanceModule } from './finance/finance.module';
 import { ProductsModule } from './products/products.module';
-import { OrdersModule } from './orders/orders.module';
 import { CompaniesModule } from './companies/companies.module';
-
+import { ClientOrdersModule } from './client_orders/client-orders.module';
 @Module({
   imports: [
     // 1. Carga global de variables de entorno con validación
@@ -67,8 +66,8 @@ import { CompaniesModule } from './companies/companies.module';
     AuthModule,
     FinanceModule,
     ProductsModule,
-    OrdersModule,
     CompaniesModule,
+    ClientOrdersModule
   ],
 
   // 5. Guardia global para proteger rutas y respetar @Public()
