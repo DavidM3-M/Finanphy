@@ -1,0 +1,53 @@
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from '../app.module';
+import { DataSource } from 'typeorm';
+import { Company } from '../companies/entities/company.entity';
+import { UserEntity } from '../users/entities/user.entity'; // Importar la entidad de usuario
+import * as fs from 'fs';
+import * as path from 'path';
+
+async function bootstrap() {
+  const app = await NestFactory.createApplicationContext(AppModule);
+  const dataSource = app.get(DataSource);
+
+  try {
+    // Leer archivo JSON
+    const filePath = path.join(__dirname, 'data', 'locations.json');
+    const rawData = fs.readFileSync(filePath, 'utf-8');
+    const locations = JSON.parse(rawData);
+
+    // Repositorios
+    const userRepo = dataSource.getRepository(UserEntity);
+    const companyRepo = dataSource.getRepository(Company);
+
+    // Buscar admin existente
+    const adminUser = await userRepo.findOneBy({ email: 'admin@finanphy.com' });
+    if (!adminUser) {
+      throw new Error('No existe el usuario admin. Crea primero el seed de admin.');
+    }
+
+    // Recorremos departamentos y municipios
+    for (const loc of locations) {
+      for (const city of loc.municipalities) {
+        const company = companyRepo.create({
+          tradeName: `${city} Test Company`,
+          legalName: `${city} Legal`,
+          companyType: 'S.A.S.',
+          taxId: '123456',
+          city: city,
+          state: loc.department,
+          userId: adminUser.id, // Asignar el usuario obligatorio
+        });
+        await companyRepo.save(company);
+      }
+    }
+
+    console.log('✅ Seed de departamentos y municipios insertado.');
+  } catch (error) {
+    console.error('❌ Error en seed:', error);
+  } finally {
+    await app.close();
+  }
+}
+
+bootstrap();
