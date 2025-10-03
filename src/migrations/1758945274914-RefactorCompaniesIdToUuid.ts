@@ -2,7 +2,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class RefactorCompaniesIdToUuid1758945274914 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // 1) Asumimos que pgcrypto ya está activo en Render (gen_random_uuid)
+    // 1) Asumimos que pgcrypto está activo (gen_random_uuid)
     
     // 2) Agregar columna temporal con UUID
     await queryRunner.query(`
@@ -10,7 +10,26 @@ export class RefactorCompaniesIdToUuid1758945274914 implements MigrationInterfac
       ADD COLUMN "temp_id" UUID DEFAULT gen_random_uuid();
     `);
 
-    // 3) Dropear dinámicamente todas las FKs que apunten a companies(id)
+    // 3) Backfill: actualizar companyId en tablas hijas
+    const children = [
+      'product',
+      'income',
+      'expense',
+      'investment',
+      'client_orders',
+    ];
+    for (const table of children) {
+      if (await queryRunner.hasTable(table)) {
+        await queryRunner.query(`
+          UPDATE "${table}" AS child
+          SET "companyId" = c."temp_id"
+          FROM "companies" AS c
+          WHERE child."companyId" = c."id";
+        `);
+      }
+    }
+
+    // 4) Dropear todas las FKs que apuntan a companies(id)
     await queryRunner.query(`
       DO $$
       DECLARE r RECORD;
@@ -27,27 +46,20 @@ export class RefactorCompaniesIdToUuid1758945274914 implements MigrationInterfac
       $$;
     `);
 
-    // 4) Dropear PK y columna vieja
+    // 5) Dropear PK y columna id antigua
     await queryRunner.query(`
       ALTER TABLE "companies" DROP CONSTRAINT IF EXISTS "companies_pkey";
       ALTER TABLE "companies" DROP COLUMN "id";
     `);
 
-    // 5) Renombrar temp_id → id y volverla PK
+    // 6) Renombrar temp_id → id y restablecer PK
     await queryRunner.query(`
       ALTER TABLE "companies" RENAME COLUMN "temp_id" TO "id";
       ALTER TABLE "companies" ADD PRIMARY KEY ("id");
     `);
 
-    // 6) Volver a crear FKs solo si existe cada tabla relacionada
-    const related = [
-      'client_orders',
-      'product',
-      'income',
-      'expense',
-      'investment',
-    ];
-    for (const table of related) {
+    // 7) Recrear FKs en cada tabla hija
+    for (const table of children) {
       if (await queryRunner.hasTable(table)) {
         await queryRunner.query(`
           ALTER TABLE "${table}"
