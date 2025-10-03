@@ -2,13 +2,18 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class AddUniqueSkuPerCompany1758945419910 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // 1) Borrar la constraint si ya existiera
+    // 1) Eliminar índice si existe (evita el “relation … already exists”)
+    await queryRunner.query(`
+      DROP INDEX IF EXISTS "UQ_product_sku_company";
+    `);
+
+    // 2) Eliminar constraint si existe
     await queryRunner.query(`
       ALTER TABLE "product"
       DROP CONSTRAINT IF EXISTS "UQ_product_sku_company";
     `);
 
-    // 2) Crear la constraint única de sku + companyId
+    // 3) Crear la unique constraint (y su índice asociado)
     await queryRunner.query(`
       ALTER TABLE "product"
       ADD CONSTRAINT "UQ_product_sku_company"
@@ -17,7 +22,12 @@ export class AddUniqueSkuPerCompany1758945419910 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    // Al revertir, simplemente eliminar la constraint
+    // 1) Eliminar índice si existe
+    await queryRunner.query(`
+      DROP INDEX IF EXISTS "UQ_product_sku_company";
+    `);
+
+    // 2) Eliminar constraint si existe
     await queryRunner.query(`
       ALTER TABLE "product"
       DROP CONSTRAINT IF EXISTS "UQ_product_sku_company";
