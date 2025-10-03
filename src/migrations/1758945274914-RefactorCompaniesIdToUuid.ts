@@ -2,35 +2,70 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class RefactorCompaniesIdToUuid1758945274914 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`
-      -- 1. Agregar extensión uuid-ossp si no existe
-      CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    // 1) Asegurar extensión para generar UUID
+    await queryRunner.query(
+      `CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`
+    );
 
-      -- 2. Crear nueva columna temporal con UUID
+    // 2) Añadir columna temporal con UUID auto­generado
+    await queryRunner.query(`
       ALTER TABLE "companies"
       ADD COLUMN "temp_id" UUID DEFAULT uuid_generate_v4();
+    `);
 
-      -- 3. Copiar datos del id actual si necesitas trazabilidad (opcional)
-      -- UPDATE "companies" SET "temp_id" = uuid_generate_v4();
+    // 3) (Opcional) backfill desde el id numérico si necesitas trazabilidad
+    // await queryRunner.query(`
+    //   UPDATE "companies"
+    //   SET "temp_id" = -- algún mapeo o UUID fijo
+    // `);
 
-      -- 4. Eliminar constraints que dependan de "id" si existen (ajusta según tu esquema)
-      -- ALTER TABLE "client_orders" DROP CONSTRAINT IF EXISTS "FK_client_orders_companyId";
+    // 4) Dropear dinámicamente la FK en client_orders → companies(companyId)
+    await queryRunner.query(`
+      DO $$
+      DECLARE
+        fk_name TEXT;
+      BEGIN
+        SELECT tc.constraint_name
+        INTO fk_name
+        FROM information_schema.table_constraints AS tc
+        JOIN information_schema.key_column_usage AS kcu
+          ON tc.constraint_name = kcu.constraint_name
+        WHERE
+          tc.table_name = 'client_orders'
+          AND tc.constraint_type = 'FOREIGN KEY'
+          AND kcu.column_name = 'companyId';
+        IF fk_name IS NOT NULL THEN
+          EXECUTE format('ALTER TABLE "client_orders" DROP CONSTRAINT %I', fk_name);
+        END IF;
+      END
+      $$;
+    `);
 
-      -- 5. Eliminar columna original y renombrar
+    // 5) Dropear la PK antigua y columna id
+    await queryRunner.query(`
+      ALTER TABLE "companies" DROP CONSTRAINT IF EXISTS "companies_pkey";
       ALTER TABLE "companies" DROP COLUMN "id";
+    `);
+
+    // 6) Renombrar temp_id → id y hacerla PRIMARY KEY
+    await queryRunner.query(`
       ALTER TABLE "companies" RENAME COLUMN "temp_id" TO "id";
-
-      -- 6. Establecer como PRIMARY KEY
       ALTER TABLE "companies" ADD PRIMARY KEY ("id");
+    `);
 
-      -- 7. Reestablecer relaciones si eliminaste constraints
-      -- ALTER TABLE "client_orders"
-      -- ADD CONSTRAINT "FK_client_orders_companyId"
-      -- FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE CASCADE;
+    // 7) Recrear la FK client_orders.companyId → companies.id
+    await queryRunner.query(`
+      ALTER TABLE "client_orders"
+      ADD FOREIGN KEY ("companyId")
+      REFERENCES "companies"("id")
+      ON DELETE CASCADE;
     `);
   }
 
-  public async down(): Promise<void> {
-    throw new Error('Manual rollback required for RefactorCompaniesIdToUuid');
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    // Rollback manual recomendado
+    throw new Error(
+      'Rollback manual requerido para RefactorCompaniesIdToUuid1758945274914'
+    );
   }
 }
