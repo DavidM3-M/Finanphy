@@ -2,70 +2,61 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class RefactorCompaniesIdToUuid1758945274914 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // 1) Asegurar extensión para generar UUID
-    await queryRunner.query(
-      `CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`
-    );
+    // 1) Asegurar gen_random_uuid() de pgcrypto
+    // (asumimos que ya existe, omitimos CREATE EXTENSION)
 
-    // 2) Añadir columna temporal con UUID auto­generado
+    // 2) Añadir columna temporal con gen_random_uuid()
     await queryRunner.query(`
       ALTER TABLE "companies"
-      ADD COLUMN "temp_id" UUID DEFAULT uuid_generate_v4();
+      ADD COLUMN "temp_id" UUID DEFAULT gen_random_uuid();
     `);
 
-    // 3) (Opcional) backfill desde el id numérico si necesitas trazabilidad
-    // await queryRunner.query(`
-    //   UPDATE "companies"
-    //   SET "temp_id" = -- algún mapeo o UUID fijo
-    // `);
-
-    // 4) Dropear dinámicamente la FK en client_orders → companies(companyId)
+    // 3) Eliminar todas las FKs que referencian companies(id)
     await queryRunner.query(`
       DO $$
-      DECLARE
-        fk_name TEXT;
+      DECLARE r RECORD;
       BEGIN
-        SELECT tc.constraint_name
-        INTO fk_name
-        FROM information_schema.table_constraints AS tc
-        JOIN information_schema.key_column_usage AS kcu
-          ON tc.constraint_name = kcu.constraint_name
-        WHERE
-          tc.table_name = 'client_orders'
-          AND tc.constraint_type = 'FOREIGN KEY'
-          AND kcu.column_name = 'companyId';
-        IF fk_name IS NOT NULL THEN
-          EXECUTE format('ALTER TABLE "client_orders" DROP CONSTRAINT %I', fk_name);
-        END IF;
+        FOR r IN (
+          SELECT conrelid::regclass::text AS tbl,
+                 conname
+          FROM pg_constraint
+          WHERE contype = 'f'
+            AND confrelid = 'companies'::regclass
+        ) LOOP
+          EXECUTE format('ALTER TABLE "%s" DROP CONSTRAINT "%s"', r.tbl, r.conname);
+        END LOOP;
       END
       $$;
     `);
 
-    // 5) Dropear la PK antigua y columna id
+    // 4) Dropear PK y columna id antigua
     await queryRunner.query(`
       ALTER TABLE "companies" DROP CONSTRAINT IF EXISTS "companies_pkey";
       ALTER TABLE "companies" DROP COLUMN "id";
     `);
 
-    // 6) Renombrar temp_id → id y hacerla PRIMARY KEY
+    // 5) Renombrar y marcar PK
     await queryRunner.query(`
       ALTER TABLE "companies" RENAME COLUMN "temp_id" TO "id";
       ALTER TABLE "companies" ADD PRIMARY KEY ("id");
     `);
 
-    // 7) Recrear la FK client_orders.companyId → companies.id
+    // 6) Recrear manualmente las FKs
     await queryRunner.query(`
       ALTER TABLE "client_orders"
-      ADD FOREIGN KEY ("companyId")
-      REFERENCES "companies"("id")
-      ON DELETE CASCADE;
+        ADD FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE CASCADE;
+      ALTER TABLE "product"
+        ADD FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE CASCADE;
+      ALTER TABLE "income"
+        ADD FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE CASCADE;
+      ALTER TABLE "expense"
+        ADD FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE CASCADE;
+      ALTER TABLE "investment"
+        ADD FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE CASCADE;
     `);
   }
 
-  public async down(queryRunner: QueryRunner): Promise<void> {
-    // Rollback manual recomendado
-    throw new Error(
-      'Rollback manual requerido para RefactorCompaniesIdToUuid1758945274914'
-    );
+  public async down(): Promise<void> {
+    throw new Error('Rollback manual requerido');
   }
 }
