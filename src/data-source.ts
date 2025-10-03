@@ -8,10 +8,14 @@ dotenv.config();
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
-  url: process.env.DATABASE_URL, // ← Usa la cadena completa con usuario, contraseña, host, puerto y SSL
-  ssl: {
-    rejectUnauthorized: false // ← Necesario para Supabase con sslmode=require
-  },
+  host: process.env.POSTGRES_HOST || 'localhost',
+  port: parseInt(process.env.POSTGRES_PORT || '5436', 10),
+  username: process.env.POSTGRES_USERNAME || 'postgres',
+  password: process.env.POSTGRES_PASSWORD || 'postgres',
+  database: process.env.POSTGRES_DATABASE || 'finanphy',
+  ssl: process.env.POSTGRES_SSL === 'true'
+    ? { rejectUnauthorized: false }
+    : false,
   entities: [
     path.join(__dirname, 'companies/entities/*.entity.{ts,js}'),
     path.join(__dirname, 'users/entities/*.entity.{ts,js}'),
@@ -24,5 +28,5 @@ export const AppDataSource = new DataSource({
   ],
   migrationsTransactionMode: 'each',
   synchronize: false,
-  logging: false
+  logging: false,
 });

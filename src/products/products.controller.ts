@@ -21,26 +21,20 @@ import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { UserEntity } from 'src/users/entities/user.entity';
 
 @UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles(Role.User, Role.Admin, Role.Seller)
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
-  // Cliente: ver catálogo público de una compañía
-  @Roles(Role.Client)
-  @Get('company/:companyId')
-  findByCompany(@Param('companyId', ParseUUIDPipe) companyId: string) {
-    return this.productsService.findAllByCompany(companyId);
-  }
-
   // Vendedor: ver todos sus productos
-  @Roles(Role.Seller)
+  @Roles(Role.User)
   @Get()
   findAll(@CurrentUser() user: UserEntity) {
     return this.productsService.findAllByUser(user.id);
   }
 
   // Vendedor: ver un producto específico
-  @Roles(Role.Seller)
+  @Roles(Role.User)
   @Get(':id')
   findOne(
     @Param('id', ParseIntPipe) id: number,
@@ -50,14 +44,14 @@ export class ProductsController {
   }
 
   // Vendedor: crear producto
-  @Roles(Role.Seller)
+  @Roles(Role.User)
   @Post()
   create(@Body() dto: CreateProductDto, @CurrentUser() user: UserEntity) {
     return this.productsService.createForUser(dto, user.id);
   }
 
   // Vendedor: actualizar producto
-  @Roles(Role.Seller)
+  @Roles(Role.User)
   @Put(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -68,7 +62,7 @@ export class ProductsController {
   }
 
   // Vendedor: eliminar producto
-  @Roles(Role.Seller)
+  @Roles(Role.User)
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: UserEntity) {
     return this.productsService.removeForUser(id, user.id);

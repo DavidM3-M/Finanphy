@@ -1,6 +1,6 @@
 // src/products/product.entity.ts
 import { Company } from '../../companies/entities/company.entity';
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Index } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Index, CreateDateColumn } from 'typeorm';
 
 @Index(['sku', 'companyId'], { unique: true })
 
@@ -14,6 +14,9 @@ export class Product {
 
   @Column()
   sku!: string;
+
+  @CreateDateColumn()
+  createdAt!: Date;
 
   @Column({ nullable: true })
   description!: string;
@@ -29,6 +32,12 @@ export class Product {
 
   @Column('decimal', { precision: 12, scale: 2 })
   cost!: number;
+
+  @Column({ default: true })
+  isPublic!: boolean;
+
+  @Column({ default: true })
+  isActive!: boolean;
 
   @Column({ default: 0 })
   stock!: number;
