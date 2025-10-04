@@ -9,6 +9,7 @@ import { Repository } from 'typeorm';
 import { Company } from './entities/company.entity';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class CompaniesService {
@@ -18,19 +19,21 @@ export class CompaniesService {
   ) {}
 
   // Crear empresa asociada al usuario autenticado
-  async create(dto: CreateCompanyDto, userId: string) {
-    const existing = await this.repo.findOne({ where: { taxId: dto.taxId } });
-    if (existing) {
-      throw new BadRequestException('A company with this tax ID already exists');
-    }
 
-    const company = this.repo.create({
-      ...dto,
-      userId,
-    });
-
-    return this.repo.save(company);
+async create(dto: CreateCompanyDto, userId: string) {
+  const existing = await this.repo.findOne({ where: { taxId: dto.taxId } });
+  if (existing) {
+    throw new BadRequestException('A company with this tax ID already exists');
   }
+
+  const company = this.repo.create({
+    id: randomUUID(), // 👈 Generación manual
+    ...dto,
+    userId,
+  });
+
+  return this.repo.save(company);
+}
 
   // Obtener todas las empresas del usuario autenticado
   async findAllByUser(userId: string) {
