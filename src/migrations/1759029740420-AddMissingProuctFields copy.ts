@@ -21,12 +21,24 @@ export class AddMissingProductFields1759029740420 implements MigrationInterface 
         END IF;
       END $$;
     `);
+    await queryRunner.query(`
+    DO $$ BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'product' AND column_name = 'createdAt'
+      ) THEN
+        ALTER TABLE "product"
+        ADD COLUMN "createdAt" TIMESTAMP NOT NULL DEFAULT now();
+      END IF;
+    END $$;
+  `);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
       ALTER TABLE "product" DROP COLUMN IF EXISTS "isPublic";
       ALTER TABLE "product" DROP COLUMN IF EXISTS "isActive";
+      ALTER TABLE "product" DROP COLUMN IF EXISTS "createdAt";
     `);
   }
 }
