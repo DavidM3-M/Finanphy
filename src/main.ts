@@ -11,7 +11,8 @@ async function bootstrap() {
       'http://localhost:3000',
       'http://localhost:3001',
       'https://finanphy.com',
-      'https://finanphy-dev-auth.onrender.com'
+      'https://finanphy-dev-auth.onrender.com',
+      'https://finanphy.netlify.app'
     ];
 
     if (!origin || allowedOrigins.includes(origin)) {
