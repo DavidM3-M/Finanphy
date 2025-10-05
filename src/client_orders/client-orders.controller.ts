@@ -7,6 +7,8 @@ import {
   Body,
   UseGuards,
   ParseUUIDPipe,
+  Delete,
+  Req,
 } from '@nestjs/common';
 import { ClientOrdersService } from './client-orders.service';
 import { CreateClientOrderDto } from './dto/create-client-order.dto';
@@ -71,4 +73,10 @@ export class ClientOrdersController {
   confirmOrder(@Param('id', ParseUUIDPipe) id: string) {
     return this.clientOrdersService.confirmOrder(id);
   }
+
+  @Delete(':id')
+  async delete(@Param('id') id: string, @Req() req) {
+  const userId = req.user.id;
+  return this.clientOrdersService.deleteOrder(id, userId);
+  } 
 }

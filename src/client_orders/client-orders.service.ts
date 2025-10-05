@@ -152,4 +152,23 @@ export class ClientOrdersService {
     order.status = status;
     return this.orderRepo.save(order);
   }
+
+  async deleteOrder(orderId: string, userId: string) {
+  const order = await this.orderRepo.findOne({
+    where: { id: orderId },
+    relations: ['company', 'user'],
+  });
+
+  if (!order) throw new NotFoundException('Orden no encontrada');
+
+  const isCreator = order.userId === userId;
+  const isReceiver = order.company.userId === userId;
+
+  if (!isCreator && !isReceiver) {
+    throw new ForbiddenException('No tienes permiso para eliminar esta orden');
+  }
+
+  await this.orderRepo.remove(order);
+  return { message: 'Orden eliminada correctamente' };
+}
 }
