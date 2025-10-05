@@ -6,7 +6,6 @@ import {
   Delete,
   Param,
   Body,
-  ParseIntPipe,
   ParseUUIDPipe,
   UseGuards,
 } from '@nestjs/common';
@@ -37,7 +36,7 @@ export class ProductsController {
   @Roles(Role.User)
   @Get(':id')
   findOne(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: UserEntity,
   ) {
     return this.productsService.findOneByUser(id, user.id);
@@ -54,7 +53,7 @@ export class ProductsController {
   @Roles(Role.User)
   @Put(':id')
   update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateProductDto,
     @CurrentUser() user: UserEntity,
   ) {
@@ -64,7 +63,10 @@ export class ProductsController {
   // Vendedor: eliminar producto
   @Roles(Role.User)
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: UserEntity) {
+  remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: UserEntity,
+  ) {
     return this.productsService.removeForUser(id, user.id);
   }
 }

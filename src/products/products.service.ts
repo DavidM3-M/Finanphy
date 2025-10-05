@@ -44,7 +44,7 @@ export class ProductsService {
   }
 
   // Vendedor: ver un producto específico
-  async findOneByUser(id: number, userId: string) {
+  async findOneByUser(id: string, userId: string) {
     const product = await this.productsRepo.findOne({
       where: { id },
       relations: ['company'],
@@ -103,7 +103,7 @@ export class ProductsService {
   }
 
   // Vendedor: actualizar producto
-  async updateForUser(id: number, dto: UpdateProductDto, userId: string) {
+  async updateForUser(id: string, dto: UpdateProductDto, userId: string) {
     const product = await this.findOneByUser(id, userId);
 
     product.name = dto.name ?? product.name;
@@ -119,7 +119,7 @@ export class ProductsService {
   }
 
   // Vendedor: eliminar producto
-  async removeForUser(id: number, userId: string) {
+  async removeForUser(id: string, userId: string) {
     const product = await this.findOneByUser(id, userId);
     return this.productsRepo.remove(product);
   }

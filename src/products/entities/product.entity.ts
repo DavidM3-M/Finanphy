@@ -6,8 +6,8 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Index, C
 
 @Entity()
 export class Product {
-  @PrimaryGeneratedColumn()
-  id!: number;
+  @PrimaryGeneratedColumn('uuid')
+  id!: string;
 
   @Column()
   name!: string;
