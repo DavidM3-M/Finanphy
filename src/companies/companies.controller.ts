@@ -31,8 +31,8 @@ export class CompaniesController {
   }
 
   @Get('my')
-  getMyCompanies(@Req() req) {
-    return this.service.findAllByUser(req.user.id);
+  getMyCompany(@Req() req) {
+    return this.service.findOneByUser(req.user.id);
   }
 
   @Get(':id')

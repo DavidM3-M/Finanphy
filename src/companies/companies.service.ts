@@ -79,4 +79,12 @@ async create(dto: CreateCompanyDto, userId: string) {
 
     return this.repo.delete(id);
   }
+
+  async findOneByUser(userId: string): Promise<Company> {
+    const company = await this.repo.findOne({ where: { userId } });
+    if (!company) {
+      throw new NotFoundException('Empresa no encontrada para este usuario');
+    }
+    return company;
+  }
 }
