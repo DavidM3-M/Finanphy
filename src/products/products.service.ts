@@ -123,4 +123,6 @@ export class ProductsService {
     const product = await this.findOneByUser(id, userId);
     return this.productsRepo.remove(product);
   }
+
+  
 }

@@ -16,10 +16,10 @@ async function bootstrap() {
   app.enableCors({
     origin: (origin, callback) => {
       if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true); // ✅ Permite Android y frontends conocidos
+        callback(null, true); 
       } else {
         console.warn(`Blocked by CORS: ${origin}`);
-        callback(new Error('Not allowed by CORS')); // ❗️ Devuelve error explícito
+        callback(new Error('Not allowed by CORS')); 
       }
     },
     credentials: true,

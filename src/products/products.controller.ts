@@ -69,4 +69,6 @@ export class ProductsController {
   ) {
     return this.productsService.removeForUser(id, user.id);
   }
+
+  
 }

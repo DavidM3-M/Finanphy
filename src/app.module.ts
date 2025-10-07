@@ -12,6 +12,7 @@ import { FinanceModule } from './finance/finance.module';
 import { ProductsModule } from './products/products.module';
 import { CompaniesModule } from './companies/companies.module';
 import { ClientOrdersModule } from './client_orders/client-orders.module';
+import { PublicModule } from './public/public.module';
 @Module({
   imports: [
     // 1. Carga global de variables de entorno con validación
@@ -67,7 +68,8 @@ import { ClientOrdersModule } from './client_orders/client-orders.module';
     FinanceModule,
     ProductsModule,
     CompaniesModule,
-    ClientOrdersModule
+    ClientOrdersModule,
+    PublicModule
   ],
 
   // 5. Guardia global para proteger rutas y respetar @Public()
