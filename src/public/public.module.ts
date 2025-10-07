@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { PublicController } from './public.controller';
-import { ProductsModule } from 'src/products/products.module';
 import { PublicService } from './public.service';
+import { ProductsModule } from 'src/products/products.module';
 
 @Module({
   imports: [ProductsModule],
   controllers: [PublicController],
-  providers: [PublicService]
+  providers: [PublicService],
 })
-export class PublicModule {}
+export class PublicModule {} 
