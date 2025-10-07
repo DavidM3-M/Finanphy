@@ -124,5 +124,12 @@ export class ProductsService {
     return this.productsRepo.remove(product);
   }
 
+  async findByCompany(companyId: string) {
+  return this.productsRepo.find({
+    where: { companyId },
+    order: { name: 'ASC' },
+  });
+}
+
   
 }

@@ -18,6 +18,8 @@ import { Roles } from 'src/auth/decorators/roles.decorator';
 import { Role } from 'src/auth/enums/role.enum';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { UserEntity } from 'src/users/entities/user.entity';
+import { Query } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 @Roles(Role.User, Role.Admin, Role.Seller)
@@ -68,6 +70,15 @@ export class ProductsController {
     @CurrentUser() user: UserEntity,
   ) {
     return this.productsService.removeForUser(id, user.id);
+  }
+
+  // ✅ Público, sin roles ni token
+  @Get('public')
+  getPublicProducts(@Query('companyId') companyId: string) {
+    if (!companyId) {
+      throw new BadRequestException('Falta el parámetro companyId');
+    }
+    return this.productsService.findByCompany(companyId);
   }
 
   
