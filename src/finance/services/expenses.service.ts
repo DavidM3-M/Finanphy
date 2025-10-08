@@ -23,6 +23,20 @@ export class ExpensesService {
     private readonly companyRepo: Repository<Company>,
   ) {}
 
+  private async getDefaultCompanyForUser(userId: string): Promise<Company> {
+    const companies = await this.companyRepo.find({ where: { userId } });
+
+    if (companies.length === 0) {
+      throw new ForbiddenException('No tienes empresas registradas');
+    }
+
+    if (companies.length > 1) {
+      throw new BadRequestException('Debes especificar la empresa');
+    }
+
+  return companies[0];
+}
+
   async findAllByUser(userId: string) {
     return this.expensesRepo
       .createQueryBuilder('expense')
@@ -46,35 +60,21 @@ export class ExpensesService {
   }
 
   async createForUser(dto: CreateExpenseDto, userId: string) {
-    let company: Company;
+  const company = dto.companyId
+    ? await validateCompanyOwnership(this.companyRepo, dto.companyId, userId)
+    : await this.getDefaultCompanyForUser(userId);
 
-    if (dto.companyId) {
-      company = await validateCompanyOwnership(this.companyRepo, dto.companyId, userId);
-    } else {
-      const companies = await this.companyRepo.find({ where: { userId } });
+  const expense = this.expensesRepo.create({
+    amount: dto.amount,
+    category: dto.category,
+    supplier: dto.supplier,
+    entryDate: dto.entryDate ? new Date(dto.entryDate) : undefined,
+    dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
+    company,
+  });
 
-      if (companies.length === 0) {
-        throw new ForbiddenException('No tienes empresas registradas');
-      }
-
-      if (companies.length > 1) {
-        throw new BadRequestException('Debes especificar la empresa');
-      }
-
-      company = companies[0];
-    }
-
-    const expense = this.expensesRepo.create({
-      amount: dto.amount,
-      category: dto.category,
-      supplier: dto.supplier,
-      entryDate: dto.entryDate ? new Date(dto.entryDate) : undefined,
-      dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
-      company,
-    });
-
-    return this.expensesRepo.save(expense);
-  }
+  return this.expensesRepo.save(expense);
+}
 
   async updateForUser(id: number, dto: UpdateExpenseDto, userId: string) {
     const expense = await this.findOneByUser(id, userId);
