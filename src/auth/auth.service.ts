@@ -58,6 +58,7 @@ export class AuthService {
       email: user.email,
       role: user.role,
       isActive: user.isActive,
+      can_view_product_details: true
     };
 
     try {

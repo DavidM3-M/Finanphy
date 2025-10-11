@@ -1,8 +1,7 @@
-// src/reports/reports.service.ts
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
-import { ReportsRepository, TxRow } from './reports.repository';
+import { ReportsRepository } from './reports.repository';
 import { MonthlyReportDto } from './dto/monthly-report.dto';
 import { Product } from '../products/entities/product.entity';
 
@@ -17,11 +16,17 @@ export class ReportsService {
 
   async generateMonthlyReportForCompany(
     companyId: string,
-    opts?: { period?: string; topN?: number; requesterId?: string },
+    opts?: {
+      period?: string;
+      topN?: number;
+      requesterId?: string;
+      orderStatus?: string;
+    },
   ): Promise<MonthlyReportDto> {
     const period = opts?.period ?? this.currentMonthKey();
     const topN = opts?.topN ?? 10;
     const requesterId = opts?.requesterId ?? companyId;
+    const statusToConsider = opts?.orderStatus ?? 'enviado';
 
     const { start, end } = this.periodBoundaries(period);
     const prevStart = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() - 1, 1));
@@ -32,118 +37,69 @@ export class ReportsService {
     const prevFromIso = prevStart.toISOString();
     const prevToIso = prevEnd.toISOString();
 
-    const [txs, prevTxs] = await Promise.all([
-      this.repo.getCompanyTransactionsForMonth(companyId, fromIso, toIso),
-      this.repo.getCompanyTransactionsForMonth(companyId, prevFromIso, prevToIso),
-    ]);
-
     const safeNum = (v: any) => {
       const n = Number(v);
       return Number.isFinite(n) ? n : 0;
     };
 
-    const byProduct = new Map<
-      string,
-      { productId: string | null; productName?: string | null; quantity: number; revenue: number }
-    >();
+    this.logger.debug(`ReportsService: generating for company=${companyId} period=${period} status=${statusToConsider} requester=${requesterId}`);
 
-    let totalIncome = 0;
-    let totalExpense = 0;
-    let salesCount = 0;
+    // Aggregation by orders (only orders with given status)
+    const [agg, aggPrev] = await Promise.all([
+      this.repo.getCompanyProductByOrderCount(companyId, fromIso, toIso, statusToConsider),
+      this.repo.getCompanyProductByOrderCount(companyId, prevFromIso, prevToIso, statusToConsider),
+    ]);
 
-    (txs || []).forEach((t: TxRow) => {
-      if (t.type === 'income') {
-        const key = t.product_id ?? '__no_product__';
-        const entry =
-          byProduct.get(key) ??
-          ({
-            productId: t.product_id ?? null,
-            productName: t.product_name ?? null,
-            quantity: 0,
-            revenue: 0,
-          } as { productId: string | null; productName?: string | null; quantity: number; revenue: number });
+    this.logger.debug(`ReportsService: agg rows=${(agg || []).length} aggPrev rows=${(aggPrev || []).length}`);
+    this.logger.debug(`ReportsService: sample agg=${JSON.stringify((agg || []).slice(0,5))}`);
 
-        const quantity = (t as any).quantity != null ? Math.max(0, Math.floor(safeNum((t as any).quantity))) : 1;
-        entry.quantity += quantity;
-        entry.revenue += safeNum(t.amount);
-        byProduct.set(key, entry);
-
-        totalIncome += safeNum(t.amount);
-        salesCount += quantity;
-      } else {
-        totalExpense += safeNum(t.amount);
-      }
-    });
-
-    const prevRevenue = (prevTxs || []).reduce(
-      (s: number, r: TxRow) => s + (r.type === 'income' ? safeNum(r.amount) : 0),
-      0,
-    );
-
-    // Resolve product details (name, cost)
-    const productIds = Array.from(byProduct.values()).map(v => v.productId).filter(Boolean) as string[];
-    let costTotal = 0;
-    const missingCostProductIds = new Set<string>();
-
-    if (productIds.length) {
-      try {
-        const products = await this.productRepo.find({ where: { id: In(productIds) } });
-        const prodMap = new Map<string, Product>();
-        products.forEach(p => prodMap.set(String((p as any).id), p));
-
-        for (const [key, val] of byProduct.entries()) {
-          if (!val.productId) {
-            if (!val.productName) val.productName = 'Sin producto';
-            continue;
-          }
-          const prod = prodMap.get(String(val.productId));
-          if (prod) {
-            const unitCost = safeNum((prod as any).cost ?? 0);
-            if (unitCost === 0) missingCostProductIds.add(String(val.productId));
-            costTotal += unitCost * val.quantity;
-            if (!val.productName) val.productName = (prod as any).name ?? 'Sin producto';
-          } else {
-            missingCostProductIds.add(String(val.productId));
-            if (!val.productName) val.productName = 'Sin producto';
-          }
-        }
-      } catch (err) {
-        this.logger.warn('Failed to resolve products for cost calculation', err?.message ?? err);
-        productIds.forEach(id => missingCostProductIds.add(id));
-      }
-    } else {
-      // ensure items without product have a display name
-      byProduct.forEach(v => { if (!v.productName) v.productName = 'Sin producto'; });
-    }
-
-    const grouped = Array.from(byProduct.values()).map(g => ({
-      id: g.productId,
-      name: g.productName ?? 'Sin producto',
-      quantity: g.quantity,
-      revenue: Number(g.revenue || 0),
+    // Build grouped data from aggregation
+    const grouped = (agg || []).map((r: any) => ({
+      id: r.product_id ?? null,
+      name: r.product_name ?? 'Sin producto',
+      ordersCount: Number(r.orders_count || 0),
+      quantity: Number(r.total_qty || 0),
+      revenue: Number(r.total_revenue || 0),
+      cost: Number(r.total_cost || 0),
     }));
 
-    const sortedByRevenueDesc = [...grouped].sort((a, b) =>
-      b.revenue !== a.revenue ? b.revenue - a.revenue : b.quantity !== a.quantity ? b.quantity - a.quantity : String(a.id ?? '').localeCompare(String(b.id ?? '')),
+    const groupedPrevRevenue = (aggPrev || []).reduce((s: number, r: any) => s + Number(r.total_revenue || 0), 0);
+
+    const totalIncome = grouped.reduce((s, g) => s + g.revenue, 0);
+    const costTotal = grouped.reduce((s, g) => s + g.cost, 0);
+    const salesCount = grouped.reduce((s, g) => s + g.ordersCount, 0);
+
+    // Sort and build top/bottom by ordersCount (tie-breaker revenue -> quantity -> id)
+    const sortedByOrdersDesc = [...grouped].sort((a, b) =>
+      b.ordersCount - a.ordersCount ||
+      b.revenue - a.revenue ||
+      b.quantity - a.quantity ||
+      String(a.id ?? '').localeCompare(String(b.id ?? '')),
     );
-    const sortedByRevenueAsc = [...grouped].sort((a, b) =>
-      a.revenue !== b.revenue ? a.revenue - b.revenue : b.quantity !== a.quantity ? b.quantity - a.quantity : String(a.id ?? '').localeCompare(String(b.id ?? '')),
+    const sortedByOrdersAsc = [...grouped].sort((a, b) =>
+      a.ordersCount - b.ordersCount ||
+      b.revenue - a.revenue ||
+      b.quantity - a.quantity ||
+      String(a.id ?? '').localeCompare(String(b.id ?? '')),
     );
 
-    const topProducts = sortedByRevenueDesc.slice(0, topN).map(p => ({
+    const topProductsComputed = sortedByOrdersDesc.slice(0, topN).map(p => ({
       id: p.id,
       name: p.name,
+      orders: p.ordersCount,
       quantity: p.quantity,
-      revenue: Number(p.revenue || 0),
+      revenue: p.revenue,
     }));
 
-    const bottomProducts = sortedByRevenueAsc.slice(0, topN).map(p => ({
+    const bottomProductsComputed = sortedByOrdersAsc.slice(0, topN).map(p => ({
       id: p.id,
       name: p.name,
+      orders: p.ordersCount,
       quantity: p.quantity,
-      revenue: Number(p.revenue || 0),
+      revenue: p.revenue,
     }));
 
+    // Profitability
     let profitabilityPct: number | null;
     if (totalIncome === 0) {
       profitabilityPct = null;
@@ -153,17 +109,47 @@ export class ReportsService {
       profitabilityPct = Number((((totalIncome - costTotal) / totalIncome) * 100).toFixed(2));
     }
 
-    const notes = ['Report generated by companyId'];
+    // Resolve product details for cost validation (best-effort)
+    const productIds = grouped.map(g => g.id).filter(Boolean) as string[];
+    const missingCostProductIds = new Set<string>();
+    if (productIds.length) {
+      try {
+        const products = await this.productRepo.find({ where: { id: In(productIds) } });
+        const prodMap = new Map<string, Product>();
+        products.forEach(p => prodMap.set(String((p as any).id), p));
+        grouped.forEach(g => {
+          if (!g.id) return;
+          const prod = prodMap.get(String(g.id));
+          if (!prod) {
+            missingCostProductIds.add(String(g.id));
+            return;
+          }
+          const unitCost = safeNum((prod as any).cost ?? 0);
+          if (unitCost === 0) missingCostProductIds.add(String(g.id));
+        });
+      } catch (err) {
+        this.logger.warn('Failed to resolve products for cost verification', err?.message ?? err);
+        productIds.forEach(id => missingCostProductIds.add(id));
+      }
+    }
+
+    const notes: string[] = ['Report generated by companyId'];
     if (missingCostProductIds.size > 0) {
       notes.push(`${missingCostProductIds.size} product(s) missing cost info; profitability may be incomplete`);
     }
 
-    const previousComparison = this.buildPreviousComparison(prevRevenue, totalIncome);
-    const suggestions = bottomProducts.slice(0, 3).map(p => `Consider promoting ${p.name || 'unnamed product'} (sold ${p.quantity}).`);
+    const previousComparison = this.buildPreviousComparison(groupedPrevRevenue, totalIncome);
+
+    const suggestions = bottomProductsComputed.slice(0, 3).map(p => `Consider promoting ${p.name || 'unnamed product'} (sold ${p.quantity}).`);
     const goals = [
       { label: 'Revenue target', target: Math.round(totalIncome * 1.05), unit: 'currency' as const, rationale: '5% uplift' },
       { label: 'Profitability target', target: 5, unit: 'percent' as const, rationale: 'Improve margin by 5 p.p.' },
     ];
+
+    // Expose product-level details (controller will hide for non-privileged users)
+    const salesByProduct = grouped.map(g => ({ name: g.name, quantity: g.quantity, revenue: g.revenue }));
+    const topProducts = topProductsComputed.map(p => ({ id: p.id, name: p.name, quantity: p.quantity, revenue: p.revenue }));
+    const bottomProducts = bottomProductsComputed.map(p => ({ id: p.id, name: p.name, quantity: p.quantity, revenue: p.revenue }));
 
     return {
       userId: requesterId,
@@ -173,7 +159,7 @@ export class ReportsService {
       revenueTotal: totalIncome,
       profitabilityPct,
       salesCount,
-      salesByProduct: grouped.map(g => ({ name: g.name, quantity: g.quantity, revenue: g.revenue })),
+      salesByProduct,
       topProducts,
       bottomProducts,
       suggestions,

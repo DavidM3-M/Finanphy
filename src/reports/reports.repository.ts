@@ -18,6 +18,30 @@ export class ReportsRepository {
   private readonly logger = new Logger(ReportsRepository.name);
   constructor(private readonly db: DbService) {}
 
+  
+    async getCompanyProductByOrderCount(companyId: string, fromIso: string, toIso: string, status = 'enviado') {
+    const sql = `
+                SELECT
+        COALESCE(oi."productId"::text, '__no_product__') AS product_key,
+        CASE WHEN oi."productId" IS NULL THEN NULL ELSE oi."productId"::text END AS product_id,
+        p.name AS product_name,
+        COUNT(DISTINCT oi."orderId") AS orders_count,
+        SUM(COALESCE(oi.quantity, 1)) AS total_qty,
+        SUM(COALESCE(oi.quantity, 1) * COALESCE(oi."unitPrice", 0)) AS total_revenue,
+        SUM(COALESCE(oi.quantity, 1) * COALESCE(p.cost, 0)) AS total_cost
+        FROM public.client_order_items oi
+        JOIN public.client_orders o ON o.id = oi."orderId"
+        LEFT JOIN public.product p ON p.id = oi."productId"
+        WHERE o."companyId" = $1
+        AND o."createdAt" >= $2::timestamptz
+        AND o."createdAt" <  $3::timestamptz
+        AND o.status = $4
+        GROUP BY product_key, product_id, p.name;
+    `;
+    const res = await this.db.query(sql, [companyId, fromIso, toIso, status]);
+    return res.rows || res;
+    }
+
   async getCompanyTransactionsForMonth(companyId: string, fromIso: string, toIso: string): Promise<TxRow[]> {
     if (!companyId || String(companyId).trim() === '') {
       this.logger.warn('getCompanyTransactionsForMonth called with null/empty companyId; returning []');
