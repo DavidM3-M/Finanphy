@@ -18,21 +18,27 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: JwtPayload) {
-    const user = await this.usersService.findById(payload.sub);
-
-    if (!user || !user.isActive) {
-      throw new UnauthorizedException('Usuario inválido o inactivo');
-    }
-
-    // Retorna el usuario completo para que esté disponible en req.user
-    return {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      isActive: user.isActive,
-      firstName: user.firstName,
-      lastName: user.lastName,
-    };
+  async validate(payload: any) {
+  const tokenId = payload.sub ?? payload.id ?? payload.userId;
+  if (tokenId == null) {
+    throw new UnauthorizedException('Token missing identifier');
   }
+
+  // Garantizar que se pasa un string a usersService.findById sin cambiar su firma
+  const lookupIdStr = String(tokenId);
+
+  const user = await this.usersService.findById(lookupIdStr);
+  if (!user || !user.isActive) {
+    throw new UnauthorizedException('Usuario inválido o inactivo');
+  }
+
+  return {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    isActive: user.isActive,
+    firstName: user.firstName,
+    lastName: user.lastName,
+  };
+}
 }

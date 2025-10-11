@@ -13,6 +13,7 @@ import { ProductsModule } from './products/products.module';
 import { CompaniesModule } from './companies/companies.module';
 import { ClientOrdersModule } from './client_orders/client-orders.module';
 import { PublicModule } from './public/public.module';
+import { ReportsModule } from './reports/reports.module';
 @Module({
   imports: [
     // 1. Carga global de variables de entorno con validación
@@ -69,7 +70,8 @@ import { PublicModule } from './public/public.module';
     ProductsModule,
     CompaniesModule,
     ClientOrdersModule,
-    PublicModule
+    PublicModule,
+    ReportsModule
   ],
 
   // 5. Guardia global para proteger rutas y respetar @Public()

@@ -42,7 +42,7 @@ export class Product {
   @Column({ default: 0 })
   stock!: number;
 
-   @Column({ type: 'uuid' }) // 👈 necesario para el índice
+   @Column({ type: 'uuid' }) 
   companyId!: string;
 
   @ManyToOne(() => Company, company => company.products)
