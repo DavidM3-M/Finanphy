@@ -1,4 +1,11 @@
-import { IsEmail, IsString, MinLength, IsUUID } from 'class-validator';
+import {
+  IsEmail,
+  IsString,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+import { CreateCompanyDto } from '../../companies/dto/create-company.dto';
 
 export class RegisterDto {
   @IsString()
@@ -16,4 +23,7 @@ export class RegisterDto {
   @MinLength(7)
   password: string;
 
+  @ValidateNested()
+  @Type(() => CreateCompanyDto)
+  company: CreateCompanyDto;
 }
