@@ -8,9 +8,8 @@ async function bootstrap() {
   const allowedOrigins = [
     'http://localhost:3000',
     'http://localhost:3001',
-    'https://finanphy.com',
     'https://finanphy-dev-auth.onrender.com',
-    'https://finanphy.netlify.app'
+    'https://finanphy.vercel.app'
   ];
 
   app.enableCors({
