@@ -62,7 +62,6 @@ export class ProductsController {
     @Body() dto: CreateProductDto,
     @CurrentUser() user: UserEntity,
   ) {
-    // Si se subió archivo, attach como dto.image { buffer, filename, mimetype, size }
     if (file) {
       (dto as any).image = {
         buffer: file.buffer,
@@ -114,15 +113,10 @@ export class ProductsController {
     return this.productsService.findByCompany(companyId);
   }
 
-  // Endpoint que devuelve la imagen binaria guardada en BD (si implementaste getImageByProductId en el service)
+  // Endpoint que devuelve la imagen binaria guardada en BD
   @Get(':id/image')
   async getImage(@Param('id', ParseUUIDPipe) id: string, @Res() res: Response) {
-    // productsService.getImageByProductId debe devolver { data: Buffer, mimetype?, size? } | null
-    // Si tu service no tiene ese método, ignora este endpoint o implementa el método en el service.
-    // Aquí asumimos que ya lo agregaste.
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    const r = await this.productsService.getImageByProductId(id);
+    const r = await (this.productsService as any).getImageByProductId(id);
     if (!r || !r.data) {
       return res.status(HttpStatus.NOT_FOUND).json({ message: 'Image not found' });
     }
