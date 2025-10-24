@@ -111,13 +111,23 @@ export class ProductsService {
       sku: dto.sku,
       description: dto.description ?? null,
       category: dto.category ?? null,
-      imageUrl: dto.imageUrl ?? null,
+      imageUrl: imageUrl,
       price,
       cost,
       stock,
       company,
       companyId: company.id,
-    }as DeepPartial <Product>); ;
+    } as DeepPartial<Product>);
+
+    // Guardar imagen si viene en DTO (dto.image expected: { buffer, filename, mimetype, size })
+    if ((dto as any).image) {
+      const img = (dto as any).image;
+      (product as any).image_data = Buffer.from(img.buffer);
+      (product as any).image_filename = img.filename ?? null;
+      (product as any).image_mime = img.mimetype ?? null;
+      (product as any).image_size = img.size ?? null;
+      (product as any).image_uploaded_at = new Date();
+    }
 
     return this.productsRepo.save(product);
   }
@@ -136,6 +146,16 @@ export class ProductsService {
     if ((dto as any).cost !== undefined) product.cost = this.toNumber((dto as any).cost, product.cost);
     if ((dto as any).stock !== undefined) product.stock = this.toNumber((dto as any).stock, product.stock);
 
+    // Si se subió nueva imagen, sobrescribir campos de imagen
+    if ((dto as any).image) {
+      const img = (dto as any).image;
+      product.image_data = Buffer.from(img.buffer);
+      product.image_filename = img.filename ?? product.image_filename;
+      product.image_mime = img.mimetype ?? product.image_mime;
+      product.image_size = img.size ?? product.image_size;
+      product.image_uploaded_at = new Date();
+    }
+
     return this.productsRepo.save(product);
   }
 
@@ -152,5 +172,31 @@ export class ProductsService {
       order: { name: 'ASC' },
     });
   }
-  
+
+  // Servir imagen binaria desde la BD
+  async getImageByProductId(productId: string): Promise<{ data: Buffer; mimetype?: string; size?: number } | null> {
+    const product = await this.productsRepo.findOne({
+      where: { id: productId },
+      select: ['id', 'image_data', 'image_mime', 'image_size'] as any,
+    });
+
+    if (!product || !product.image_data) return null;
+
+    return {
+      data: product.image_data as Buffer,
+      mimetype: product.image_mime ?? undefined,
+      size: product.image_size ?? (product.image_data as Buffer).length,
+    };
+  }
+
+  // Borrar imagen (con verificación de ownership)
+  async deleteImageForUser(id: string, userId: string) {
+    const product = await this.findOneByUser(id, userId);
+    product.image_data = null;
+    product.image_filename = null;
+    product.image_mime = null;
+    product.image_size = null;
+    product.image_uploaded_at = null;
+    return this.productsRepo.save(product);
+  }
 }

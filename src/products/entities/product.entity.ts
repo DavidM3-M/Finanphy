@@ -46,19 +46,19 @@ export class Product {
   companyId!: string;
 
   @Column({ type: 'bytea', nullable: true }) // Postgres: bytea
-  image_data?: Buffer;
+  image_data?: Buffer | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  image_filename?: string;
+image_filename: string | null;
 
-  @Column({ type: 'varchar', length: 100, nullable: true })
-  image_mime?: string;
+@Column({ type: 'varchar', length: 100, nullable: true })
+image_mime: string | null;
 
-  @Column({ type: 'bigint', nullable: true })
-  image_size?: number;
+@Column({ type: 'bigint', nullable: true })
+image_size: number | null;
 
-  @Column({ type: 'timestamptz', nullable: true })
-  image_uploaded_at?: Date;
+@Column({ type: 'timestamptz', nullable: true })
+image_uploaded_at: Date | null;
 
 
   @ManyToOne(() => Company, company => company.products)
