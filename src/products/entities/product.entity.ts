@@ -45,6 +45,22 @@ export class Product {
    @Column({ type: 'uuid' }) 
   companyId!: string;
 
+  @Column({ type: 'bytea', nullable: true }) // Postgres: bytea
+  image_data?: Buffer;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  image_filename?: string;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  image_mime?: string;
+
+  @Column({ type: 'bigint', nullable: true })
+  image_size?: number;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  image_uploaded_at?: Date;
+
+
   @ManyToOne(() => Company, company => company.products)
   @JoinColumn({ name: 'companyId' })
   company!: Company;

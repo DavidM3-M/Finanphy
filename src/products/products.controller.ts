@@ -12,10 +12,12 @@ import {
   UploadedFile,
   Query,
   BadRequestException,
+  Res,
+  HttpStatus,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { join } from 'path';
+import { memoryStorage } from 'multer';
+import { Response } from 'express';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -26,17 +28,7 @@ import { Role } from 'src/auth/enums/role.enum';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { UserEntity } from 'src/users/entities/user.entity';
 
-const UPLOADS_DIR = join(__dirname, '../../uploads');
-
-const storage = diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, UPLOADS_DIR);
-  },
-  filename: (req, file, cb) => {
-    const safeName = `${Date.now()}-${file.originalname.replace(/\s+/g, '-')}`;
-    cb(null, safeName);
-  },
-});
+const MULTER_MEMORY = { storage: memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } }; // 10MB
 
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 @Roles(Role.User, Role.Admin, Role.Seller)
@@ -44,14 +36,14 @@ const storage = diskStorage({
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
-  // Vendedor: ver todos sus productos
+  // Lista privada del vendedor
   @Roles(Role.User)
   @Get()
   findAll(@CurrentUser() user: UserEntity) {
     return this.productsService.findAllByUser(user.id);
   }
 
-  // Vendedor: ver un producto específico
+  // Obtener producto privado
   @Roles(Role.User)
   @Get(':id')
   findOne(
@@ -61,62 +53,51 @@ export class ProductsController {
     return this.productsService.findOneByUser(id, user.id);
   }
 
-  // Vendedor: crear producto (acepta archivo "image" multipart/form-data o imageUrl en body)
-  // Reemplaza el método create en ProductsController por este
+  // Crear producto (acepta multipart form-data campo "image")
   @Roles(Role.User)
   @Post()
-  @UseInterceptors(FileInterceptor('image', { storage }))
+  @UseInterceptors(FileInterceptor('image', MULTER_MEMORY))
   async create(
     @UploadedFile() file: Express.Multer.File | undefined,
     @Body() dto: CreateProductDto,
     @CurrentUser() user: UserEntity,
   ) {
-    // construir imageUrl preferido (file > dto.imageUrl)
-    const imageUrlFromFile: string | null = file
-      ? `/uploads/${file.filename}`
-      : null;
-    const imageUrlForDb: string | null =
-      imageUrlFromFile ??
-      (dto.imageUrl !== undefined ? dto.imageUrl || null : null);
+    // Si se subió archivo, attach como dto.image { buffer, filename, mimetype, size }
+    if (file) {
+      (dto as any).image = {
+        buffer: file.buffer,
+        filename: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size,
+      };
+    }
 
-    // inyectar imageUrl en dto antes de pasar al service
-    (dto as any).imageUrl = imageUrlForDb;
-
-    // delegar la validación y normalización al service
-    const created = await this.productsService.createForUser(dto, user.id);
-    return created;
+    return this.productsService.createForUser(dto, user.id);
   }
 
-  // Reemplaza el método update en ProductsController por este
+  // Actualizar producto (acepta multipart form-data campo "image")
   @Roles(Role.User)
   @Put(':id')
-  @UseInterceptors(FileInterceptor('image', { storage }))
+  @UseInterceptors(FileInterceptor('image', MULTER_MEMORY))
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @UploadedFile() file: Express.Multer.File | undefined,
     @Body() dto: UpdateProductDto,
     @CurrentUser() user: UserEntity,
   ) {
-    // construir imageUrl preferido (file > dto.imageUrl)
-    const imageUrlFromFile: string | null = file
-      ? `/uploads/${file.filename}`
-      : null;
-    const imageUrlField =
-      imageUrlFromFile !== null
-        ? imageUrlFromFile
-        : dto.imageUrl !== undefined
-          ? dto.imageUrl
-          : undefined;
-
-    if (imageUrlField !== undefined) {
-      (dto as any).imageUrl = imageUrlField; // puede ser string | null
+    if (file) {
+      (dto as any).image = {
+        buffer: file.buffer,
+        filename: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size,
+      };
     }
 
-    // delegar normalización/validación al service
     return this.productsService.updateForUser(id, dto, user.id);
   }
 
-  // Vendedor: eliminar producto
+  // Eliminar producto
   @Roles(Role.User)
   @Delete(':id')
   remove(
@@ -126,12 +107,28 @@ export class ProductsController {
     return this.productsService.removeForUser(id, user.id);
   }
 
-  // Público, sin roles ni token
+  // Endpoint público para catálogo (sin token)
   @Get('public')
   getPublicProducts(@Query('companyId') companyId: string) {
-    if (!companyId) {
-      throw new BadRequestException('Falta el parámetro companyId');
-    }
+    if (!companyId) throw new BadRequestException('Falta el parámetro companyId');
     return this.productsService.findByCompany(companyId);
+  }
+
+  // Endpoint que devuelve la imagen binaria guardada en BD (si implementaste getImageByProductId en el service)
+  @Get(':id/image')
+  async getImage(@Param('id', ParseUUIDPipe) id: string, @Res() res: Response) {
+    // productsService.getImageByProductId debe devolver { data: Buffer, mimetype?, size? } | null
+    // Si tu service no tiene ese método, ignora este endpoint o implementa el método en el service.
+    // Aquí asumimos que ya lo agregaste.
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    const r = await this.productsService.getImageByProductId(id);
+    if (!r || !r.data) {
+      return res.status(HttpStatus.NOT_FOUND).json({ message: 'Image not found' });
+    }
+    res.setHeader('Content-Type', r.mimetype || 'application/octet-stream');
+    res.setHeader('Content-Length', String(r.size ?? r.data.length));
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    return res.send(r.data);
   }
 }
