@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import fs from 'fs';
 import path from 'path';
+import express from 'express';
 
 async function ensureUploadsDir() {
   const uploadsDir = path.resolve(process.cwd(), 'uploads');
@@ -26,7 +27,7 @@ async function bootstrap() {
 
   const app = await NestFactory.create(AppModule);
 
-  // validación global colocada antes de app.listen para que afecte desde el inicio
+  // ValidationPipe global
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -35,6 +36,7 @@ async function bootstrap() {
     }),
   );
 
+  // CORS
   const allowedOrigins = [
     'http://localhost:3000',
     'http://localhost:3001',
@@ -56,8 +58,26 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
-  await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
-  console.log(`App listening on ${process.env.PORT ?? 3000}`);
+  // Servir uploads como estático con headers controlados para evitar problemas de caché/CORS
+  const uploadsPath = path.resolve(process.cwd(), 'uploads');
+  app.use(
+    '/uploads',
+    express.static(uploadsPath, {
+      etag: true,
+      lastModified: true,
+      setHeaders: (res, filepath) => {
+        // permitir acceso desde frontend; ajustar dominio si necesitas restringir
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        // Si los archivos llevan filename único (timestamp) usar cache largo e immutable
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      },
+    }),
+  );
+  console.log(`Serving uploads from ${uploadsPath} at /uploads`);
+
+  const port = process.env.PORT ?? 3000;
+  await app.listen(port, '0.0.0.0');
+  console.log(`App listening on ${port}`);
 }
 
 bootstrap().catch((err) => {
