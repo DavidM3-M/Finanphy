@@ -1,31 +1,30 @@
-import { Role } from "../../auth/enums/role.enum";
-import { Company } from "../../companies/entities/company.entity";
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Role } from '../../auth/enums/role.enum';
+import { Company } from '../../companies/entities/company.entity';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
 export class UserEntity {
-    @PrimaryGeneratedColumn('uuid')
-    id!: string;
+  @PrimaryGeneratedColumn('uuid')
+  id!: string;
 
-    @Column()
-    firstName!: string;
+  @Column()
+  firstName!: string;
 
-    @Column()
-    lastName!: string;
+  @Column()
+  lastName!: string;
 
-    @Column()
-    email!: string;
+  @Column()
+  email!: string;
 
-    @Column()
-    password!: string;
+  @Column()
+  password!: string;
 
-    @Column({ type: 'enum', enum: Role, default: Role.User })
-    role!: Role;
+  @Column({ type: 'enum', enum: Role, default: Role.User })
+  role!: Role;
 
-    @Column({ default: true })
-    isActive!: boolean;
+  @Column({ default: true })
+  isActive!: boolean;
 
-    @OneToMany(() => Company, company => company.user)
-    companies!: Company[];
-
+  @OneToMany(() => Company, (company) => company.user)
+  companies!: Company[];
 }

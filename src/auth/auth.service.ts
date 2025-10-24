@@ -35,7 +35,8 @@ export class AuthService {
     });
 
     await this.companiesService.create(dto.company, user.id);
-
+    
+    console.log("Usuario completo:", user);
     const payload = {
       sub: user.id,
       email: user.email,
