@@ -62,70 +62,58 @@ export class ProductsController {
   }
 
   // Vendedor: crear producto (acepta archivo "image" multipart/form-data o imageUrl en body)
+  // Reemplaza el método create en ProductsController por este
   @Roles(Role.User)
   @Post()
   @UseInterceptors(FileInterceptor('image', { storage }))
   async create(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: Express.Multer.File | undefined,
     @Body() dto: CreateProductDto,
     @CurrentUser() user: UserEntity,
   ) {
-    // Construir imageUrl: si se subió archivo, usar /uploads/<filename>; si viene imageUrl en body, puede ser string o null
-    const imageUrlFromFile: string | null = file ? `/uploads/${file.filename}` : null;
-    // Si file presente, preferir file. Si no, tomar lo que venga en dto.imageUrl (puede ser string | null | undefined)
+    // construir imageUrl preferido (file > dto.imageUrl)
+    const imageUrlFromFile: string | null = file
+      ? `/uploads/${file.filename}`
+      : null;
     const imageUrlForDb: string | null =
-      imageUrlFromFile ?? (dto.imageUrl !== undefined ? dto.imageUrl : null);
+      imageUrlFromFile ??
+      (dto.imageUrl !== undefined ? dto.imageUrl || null : null);
 
-    // Normalizar/transformar valores numéricos desde strings (DTOs pueden venir como strings)
-    const payload = {
-      name: dto.name,
-      sku: dto.sku,
-      description: dto.description ?? null,
-      category: dto.category ?? null,
-      imageUrl: imageUrlForDb,
-      // Convertir a número si vienen como string; si no vienen, dejar undefined so service can handle defaults
-      price: (dto as any).price !== undefined ? parseFloat((dto as any).price) : undefined,
-      cost: (dto as any).cost !== undefined ? parseFloat((dto as any).cost) : undefined,
-      stock: (dto as any).stock !== undefined ? parseInt((dto as any).stock, 10) : undefined,
-      // companyId handled by service (using user.id) — no trust of client-provided companyId
-    };
+    // inyectar imageUrl en dto antes de pasar al service
+    (dto as any).imageUrl = imageUrlForDb;
 
-    return this.productsService.createForUser(payload as any, user.id);
+    // delegar la validación y normalización al service
+    const created = await this.productsService.createForUser(dto, user.id);
+    return created;
   }
 
-  // Vendedor: actualizar producto (acepta archivo "image" multipart/form-data or imageUrl in body)
+  // Reemplaza el método update en ProductsController por este
   @Roles(Role.User)
   @Put(':id')
   @UseInterceptors(FileInterceptor('image', { storage }))
   async update(
     @Param('id', ParseUUIDPipe) id: string,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: Express.Multer.File | undefined,
     @Body() dto: UpdateProductDto,
     @CurrentUser() user: UserEntity,
   ) {
-    // Si hay archivo nuevo, usamos su URL; si no, respetamos el valor que venga en dto.imageUrl (string | null | undefined)
-    const imageUrlFromFile: string | null = file ? `/uploads/${file.filename}` : null;
+    // construir imageUrl preferido (file > dto.imageUrl)
+    const imageUrlFromFile: string | null = file
+      ? `/uploads/${file.filename}`
+      : null;
     const imageUrlField =
       imageUrlFromFile !== null
         ? imageUrlFromFile
         : dto.imageUrl !== undefined
-        ? dto.imageUrl // puede ser string o null
-        : undefined; // undefined => no tocar el campo en la actualización
+          ? dto.imageUrl
+          : undefined;
 
-    const payload: any = {
-      // solo incluir campos que vienen en el DTO para evitar sobreescrituras indeseadas
-    };
+    if (imageUrlField !== undefined) {
+      (dto as any).imageUrl = imageUrlField; // puede ser string | null
+    }
 
-    if (dto.name !== undefined) payload.name = dto.name;
-    if (dto.sku !== undefined) payload.sku = dto.sku;
-    if (dto.description !== undefined) payload.description = dto.description ?? null;
-    if (dto.category !== undefined) payload.category = dto.category ?? null;
-    if (imageUrlField !== undefined) payload.imageUrl = imageUrlField; // string | null
-    if ((dto as any).price !== undefined) payload.price = parseFloat((dto as any).price);
-    if ((dto as any).cost !== undefined) payload.cost = parseFloat((dto as any).cost);
-    if ((dto as any).stock !== undefined) payload.stock = parseInt((dto as any).stock, 10);
-
-    return this.productsService.updateForUser(id, payload, user.id);
+    // delegar normalización/validación al service
+    return this.productsService.updateForUser(id, dto, user.id);
   }
 
   // Vendedor: eliminar producto

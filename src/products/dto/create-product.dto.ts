@@ -1,9 +1,9 @@
-// src/products/dto/create-product.dto.ts
 import {
   IsString,
-  IsNumber,
+  IsNumberString,
   IsOptional,
-  Min,
+  MinLength,
+  MaxLength,
   Length,
   IsUUID,
 } from 'class-validator';
@@ -19,30 +19,27 @@ export class CreateProductDto {
 
   @IsOptional()
   @IsString()
-  @Length(0, 255)
+  @MaxLength(255)
   description?: string;
 
   @IsOptional()
   @IsString()
-  @Length(0, 100)
+  @MaxLength(100)
   category?: string;
 
   @IsOptional()
   @IsString()
   imageUrl?: string;
 
-  @IsNumber()
-  @Min(0)
-  price: number;
+  @IsNumberString()
+  price: string;
 
-  @IsNumber()
-  @Min(0)
-  cost: number;
+  @IsNumberString()
+  cost: string;
 
   @IsOptional()
-  @IsNumber()
-  @Min(0)
-  stock?: number;
+  @IsNumberString()
+  stock?: string;
 
   @IsOptional()
   @IsUUID('4')
