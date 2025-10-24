@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DeepPartial, Repository } from 'typeorm';
 import { Product } from '../products/entities/product.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -58,12 +58,22 @@ export class ProductsService {
     return product;
   }
 
+  // Helpers para normalizar tipos
+  private toNumber(value: any, fallback = 0): number {
+    if (value === undefined || value === null || value === '') return fallback;
+    return typeof value === 'number' ? value : Number(value);
+  }
+
   // Vendedor: crear producto en una compañía
   async createForUser(dto: CreateProductDto, userId: string) {
     let company: Company;
 
-    if (dto.companyId) {
-      company = await validateCompanyOwnership(this.companyRepo, dto.companyId, userId);
+    if ((dto as any).companyId) {
+      company = await validateCompanyOwnership(
+        this.companyRepo,
+        (dto as any).companyId,
+        userId,
+      );
     } else {
       const companies = await this.companyRepo.find({ where: { userId } });
 
@@ -83,21 +93,31 @@ export class ProductsService {
     });
 
     if (existing) {
-      throw new BadRequestException(`Ya existe un producto con el SKU ${dto.sku} en esta empresa`);
+      throw new BadRequestException(
+        `Ya existe un producto con el SKU ${dto.sku} en esta empresa`,
+      );
     }
+
+    // Normalizar valores
+    const price = this.toNumber((dto as any).price, 0);
+    const cost = this.toNumber((dto as any).cost, 0);
+    const stock = this.toNumber((dto as any).stock, 0);
+
+    // imageUrl puede ser string | null; si viene undefined -> mantener null
+    const imageUrl = (dto as any).imageUrl === undefined ? null : (dto as any).imageUrl;
 
     const product = this.productsRepo.create({
       name: dto.name,
       sku: dto.sku,
-      description: dto.description,
-      category: dto.category,
-      imageUrl: dto.imageUrl,
-      price: dto.price,
-      cost: dto.cost,
-      stock: dto.stock ?? 0,
+      description: dto.description ?? null,
+      category: dto.category ?? null,
+      imageUrl: dto.imageUrl ?? null,
+      price,
+      cost,
+      stock,
       company,
       companyId: company.id,
-    });
+    }as DeepPartial <Product>); ;
 
     return this.productsRepo.save(product);
   }
@@ -106,14 +126,15 @@ export class ProductsService {
   async updateForUser(id: string, dto: UpdateProductDto, userId: string) {
     const product = await this.findOneByUser(id, userId);
 
-    product.name = dto.name ?? product.name;
-    product.sku = dto.sku ?? product.sku;
-    product.description = dto.description ?? product.description;
-    product.category = dto.category ?? product.category;
-    product.imageUrl = dto.imageUrl ?? product.imageUrl;
-    product.price = dto.price ?? product.price;
-    product.cost = dto.cost ?? product.cost;
-    product.stock = dto.stock ?? product.stock;
+    // Solo actualizar campos que vienen en dto (incluso si vienen como null)
+    if (dto.name !== undefined) product.name = dto.name;
+    if (dto.sku !== undefined) product.sku = dto.sku;
+    if (dto.description !== undefined) product.description = dto.description ?? null;
+    if (dto.category !== undefined) product.category = dto.category ?? null;
+    if ((dto as any).imageUrl !== undefined) product.imageUrl = (dto as any).imageUrl ?? null;
+    if ((dto as any).price !== undefined) product.price = this.toNumber((dto as any).price, product.price);
+    if ((dto as any).cost !== undefined) product.cost = this.toNumber((dto as any).cost, product.cost);
+    if ((dto as any).stock !== undefined) product.stock = this.toNumber((dto as any).stock, product.stock);
 
     return this.productsRepo.save(product);
   }
@@ -124,12 +145,11 @@ export class ProductsService {
     return this.productsRepo.remove(product);
   }
 
+  // Público: listar por companyId (nombre compatible con controller)
   async findByCompany(companyId: string) {
-  return this.productsRepo.find({
-    where: { companyId },
-    order: { name: 'ASC' },
-  });
-}
-
-  
+    return this.productsRepo.find({
+      where: { companyId },
+      order: { name: 'ASC' },
+    });
+  }
 }
