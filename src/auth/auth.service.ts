@@ -41,6 +41,8 @@ export class AuthService {
       email: user.email,
       role: user.role,
       isActive: user.isActive,
+      firstName: user.firstName,
+      lastName: user.lastName,
     };
 
     try {
@@ -68,6 +70,8 @@ export class AuthService {
       role: user.role,
       isActive: user.isActive,
       can_view_product_details: true,
+      firstName: user.firstName,
+      lastName: user.lastName,
     };
 
     try {
