@@ -5,7 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, DataSource, QueryRunner } from 'typeorm';
 import { ClientOrder } from './entities/client-order.entity';
 import { ClientOrderItem } from './entities/client-order-item.entity';
 import { Product } from '../products/entities/product.entity';
@@ -32,9 +32,52 @@ export class ClientOrdersService {
 
     @InjectRepository(Company)
     private readonly companyRepo: Repository<Company>,
+
+    private readonly dataSource: DataSource,
   ) {}
 
-  async create(companyId: string, rawItems: OrderItemInput[], userId:string) {
+  // Helper: reserva stock dentro de una transacción usando bloqueo pesimista
+  private async reserveStockForOrder(queryRunner: QueryRunner, items: ClientOrderItem[]) {
+    for (const item of items) {
+      const prod = await queryRunner.manager.findOne(Product, {
+        where: { id: item.productId },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!prod) throw new NotFoundException(`Producto no encontrado: ${item.productId}`);
+
+      const current = Number(prod.stock ?? 0);
+      const qty = Number(item.quantity);
+
+      if (!Number.isFinite(qty) || qty <= 0) throw new BadRequestException('Cantidad inválida');
+
+      if (current < qty) {
+        throw new BadRequestException(`Stock insuficiente para el producto ${prod.id}`);
+      }
+
+      prod.stock = current - qty;
+      await queryRunner.manager.save(prod);
+    }
+  }
+
+  // Helper: restaura stock dentro de una transacción usando bloqueo pesimista
+  private async restoreStockForOrder(queryRunner: QueryRunner, items: ClientOrderItem[]) {
+    for (const item of items) {
+      const prod = await queryRunner.manager.findOne(Product, {
+        where: { id: item.productId },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!prod) continue;
+
+      const current = Number(prod.stock ?? 0);
+      const qty = Number(item.quantity);
+      prod.stock = current + qty;
+      await queryRunner.manager.save(prod);
+    }
+  }
+
+  async create(companyId: string, rawItems: OrderItemInput[], userId: string) {
     const company = await this.companyRepo.findOne({ where: { id: companyId } });
     if (!company) throw new NotFoundException('Compañía no encontrada');
 
@@ -72,7 +115,32 @@ export class ClientOrdersService {
       userId,
     });
 
-    return this.orderRepo.save(order);
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // Guardar la orden primero en la transacción (para tener id y relaciones)
+      await queryRunner.manager.save(order);
+
+      // Reservar stock para cada item
+      await this.reserveStockForOrder(queryRunner, groupedItems);
+
+      await queryRunner.commitTransaction();
+
+      // Recargar la orden con relaciones para devolverla
+      const saved = await this.orderRepo.findOne({
+        where: { id: order.id },
+        relations: ['company', 'items', 'items.product'],
+      });
+
+      return saved ?? order;
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async confirmOrder(orderId: string) {
@@ -154,21 +222,38 @@ export class ClientOrdersService {
   }
 
   async deleteOrder(orderId: string, userId: string) {
-  const order = await this.orderRepo.findOne({
-    where: { id: orderId },
-    relations: ['company', 'user'],
-  });
+    const order = await this.orderRepo.findOne({
+      where: { id: orderId },
+      relations: ['company', 'user', 'items', 'items.product'],
+    });
 
-  if (!order) throw new NotFoundException('Orden no encontrada');
+    if (!order) throw new NotFoundException('Orden no encontrada');
 
-  const isCreator = order.userId === userId;
-  const isReceiver = order.company.userId === userId;
+    const isCreator = order.userId === userId;
+    const isReceiver = order.company.userId === userId;
 
-  if (!isCreator && !isReceiver) {
-    throw new ForbiddenException('No tienes permiso para eliminar esta orden');
+    if (!isCreator && !isReceiver) {
+      throw new ForbiddenException('No tienes permiso para eliminar esta orden');
+    }
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // Restaurar stock reservado por la orden
+      await this.restoreStockForOrder(queryRunner, order.items);
+
+      // Eliminar la orden dentro de la transacción
+      await queryRunner.manager.remove(ClientOrder, order);
+
+      await queryRunner.commitTransaction();
+      return { message: 'Orden eliminada correctamente. El stock reservado fue devuelto al inventario' };
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
   }
-
-  await this.orderRepo.remove(order);
-  return { message: 'Orden eliminada correctamente' };
-}
 }

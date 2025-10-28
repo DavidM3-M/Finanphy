@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DeepPartial, Repository } from 'typeorm';
+import { DeepPartial, Repository, DataSource, QueryRunner } from 'typeorm';
 import { Product } from '../products/entities/product.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -20,6 +20,8 @@ export class ProductsService {
 
     @InjectRepository(Company)
     private readonly companyRepo: Repository<Company>,
+
+    private readonly dataSource: DataSource,
   ) {}
 
   // Vendedor: ver todos sus productos
@@ -198,5 +200,62 @@ export class ProductsService {
     product.image_size = null;
     product.image_uploaded_at = null;
     return this.productsRepo.save(product);
+  }
+
+  // Ajusta stock por delta (+ para aumentar, - para reducir).
+  // Si se pasa queryRunner, usa ese manager (útil dentro de transacciones externas).
+  // Si no se pasa, crea su propio queryRunner para la operación atómica.
+  async adjustStockByDelta(productId: string, delta: number, queryRunner?: QueryRunner) {
+    if (!Number.isFinite(delta) || delta === 0) {
+      throw new BadRequestException('Delta de stock inválido');
+    }
+
+    const needsOwnRunner = !queryRunner;
+    let runner: QueryRunner | undefined = queryRunner;
+
+    if (needsOwnRunner) {
+      runner = this.dataSource.createQueryRunner();
+      await runner.connect();
+      await runner.startTransaction();
+    }
+
+    try {
+      // obtener producto con bloqueo pesimista para evitar race conditions
+      const prod = await runner!.manager.findOne(Product, {
+        where: { id: productId },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!prod) throw new NotFoundException('Producto no encontrado');
+
+      const current = Number(prod.stock ?? 0);
+      const newStock = current + Number(delta);
+
+      if (!Number.isFinite(newStock) || isNaN(newStock)) {
+        throw new BadRequestException('Operación de stock inválida');
+      }
+
+      if (newStock < 0) {
+        throw new BadRequestException('Stock insuficiente');
+      }
+
+      prod.stock = newStock;
+      await runner!.manager.save(prod);
+
+      if (needsOwnRunner) {
+        await runner!.commitTransaction();
+      }
+
+      return prod;
+    } catch (err) {
+      if (needsOwnRunner && runner) {
+        try { await runner.rollbackTransaction(); } catch (_) {}
+      }
+      throw err;
+    } finally {
+      if (needsOwnRunner && runner) {
+        try { await runner.release(); } catch (_) {}
+      }
+    }
   }
 }
