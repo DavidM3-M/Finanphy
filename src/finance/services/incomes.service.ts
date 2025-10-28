@@ -22,6 +22,16 @@ export class IncomesService {
     private readonly companyRepo: Repository<Company>,
   ) {}
 
+  private parseDateInput(v?: string): Date | null {
+    if (!v) return null;
+    // date-only YYYY-MM-DD -> treat as start of day UTC
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+      return new Date(`${v}T00:00:00.000Z`);
+    }
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
   async findAllByUser(userId: string) {
     return this.incomesRepo
       .createQueryBuilder('income')
@@ -64,12 +74,20 @@ export class IncomesService {
       company = companies[0];
     }
 
+    const entryDateParsed = this.parseDateInput(dto.entryDate);
+    const dueDateParsed = this.parseDateInput(dto.dueDate);
+
+    // map null -> undefined to satisfy DeepPartial typing (no nulls)
+    const entryDateForCreate = entryDateParsed ?? undefined;
+    const dueDateForCreate = dueDateParsed ?? undefined;
+    const invoiceNumberForCreate = dto.invoiceNumber ?? undefined;
+
     const income = this.incomesRepo.create({
       amount: dto.amount,
       category: dto.category,
-      invoiceNumber: dto.invoiceNumber,
-      entryDate: dto.entryDate ? new Date(dto.entryDate) : undefined,
-      dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
+      invoiceNumber: invoiceNumberForCreate,
+      entryDate: entryDateForCreate,
+      dueDate: dueDateForCreate,
       company,
     });
 
@@ -83,12 +101,14 @@ export class IncomesService {
     income.category = dto.category ?? income.category;
     income.invoiceNumber = dto.invoiceNumber ?? income.invoiceNumber;
 
-    if (dto.entryDate) {
-      income.entryDate = new Date(dto.entryDate);
+    if (dto.entryDate !== undefined) {
+      const parsed = this.parseDateInput(dto.entryDate);
+      income.entryDate = parsed ?? income.entryDate;
     }
 
-    if (dto.dueDate) {
-      income.dueDate = new Date(dto.dueDate);
+    if (dto.dueDate !== undefined) {
+      const parsed = this.parseDateInput(dto.dueDate);
+      income.dueDate = parsed ?? income.dueDate;
     }
 
     return this.incomesRepo.save(income);

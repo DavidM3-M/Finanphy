@@ -1,4 +1,3 @@
-// src/finance/income.entity.ts
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -26,11 +25,13 @@ export class Income {
   @CreateDateColumn()
   createdAt!: Date;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  entryDate!: Date;
+  // ahora timestamptz, nullable y con default CURRENT_TIMESTAMP para compatibilidad
+  @Column({ type: 'timestamp with time zone', nullable: true, default: () => 'CURRENT_TIMESTAMP' })
+  entryDate: Date | null;
 
-  @Column({ type: 'timestamp', nullable: true })
-  dueDate?: Date;
+  // dueDate también como timestamptz y nullable
+  @Column({ type: 'timestamp with time zone', nullable: true })
+  dueDate: Date | null;
 
   @Column({ type: 'uuid' })
   companyId!: string;
