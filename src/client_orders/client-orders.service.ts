@@ -10,11 +10,13 @@ import { ClientOrder } from './entities/client-order.entity';
 import { ClientOrderItem } from './entities/client-order-item.entity';
 import { Product } from '../products/entities/product.entity';
 import { Company } from '../companies/entities/company.entity';
+
 import { calculateOrderTotal } from './utils/calculate-order-total';
 import { validateStock } from './utils/validate-stock-before-confirm';
 import { groupItemsByProduct } from './utils/group-items-by-product';
 import { generateOrderCode } from './utils/generate-order-code';
 import { formatOrderSummary } from './utils/format-order-summary';
+import { Income } from 'src/finance/entities/income.entity';
 
 type OrderItemInput = {
   productId: string | number;
@@ -32,6 +34,9 @@ export class ClientOrdersService {
 
     @InjectRepository(Company)
     private readonly companyRepo: Repository<Company>,
+
+    @InjectRepository(Income)
+    private readonly incomesRepo: Repository<Income>,
 
     private readonly dataSource: DataSource,
   ) {}
@@ -210,13 +215,71 @@ export class ClientOrdersService {
     });
   }
 
+  // updateStatus ahora crea un Income cuando el status cambia a 'enviado'
   async updateStatus(
     orderId: string,
     status: 'recibido' | 'en_proceso' | 'enviado',
   ) {
-    const order = await this.orderRepo.findOne({ where: { id: orderId } });
+    const order = await this.orderRepo.findOne({
+      where: { id: orderId },
+      relations: ['company', 'items', 'items.product'],
+    });
     if (!order) throw new NotFoundException('Pedido no encontrado');
 
+    const prevStatus = order.status;
+    if (prevStatus === status) {
+      // No hay cambio; devolver la orden tal cual
+      order.status = status;
+      await this.orderRepo.save(order);
+      return order;
+    }
+
+    // Si vamos a marcar como 'enviado' generamos ingreso
+    if (status === 'enviado') {
+      // calcular total
+      order.items = groupItemsByProduct(order.items);
+      const total = calculateOrderTotal(order.items);
+
+      // crear Income dentro de una transacción junto con el cambio de estado
+      const queryRunner = this.dataSource.createQueryRunner();
+      await queryRunner.connect();
+      await queryRunner.startTransaction();
+
+      try {
+        // actualizar estado de orden
+        order.status = 'enviado';
+        await queryRunner.manager.save(order);
+
+        // crear ingreso asociado a la compañía
+        const income = this.incomesRepo.create({
+          amount: total,
+          category: 'venta',
+          invoiceNumber: order.orderCode,
+          entryDate: new Date(),
+          dueDate: undefined,
+          company: order.company,
+        });
+
+        await queryRunner.manager.save(income);
+
+        await queryRunner.commitTransaction();
+
+        // recargar orden con relaciones
+        const updated = await this.orderRepo.findOne({
+          where: { id: order.id },
+          relations: ['company', 'items', 'items.product'],
+        });
+
+        return updated ?? order;
+      } catch (err) {
+        await queryRunner.rollbackTransaction();
+        throw err;
+      } finally {
+        await queryRunner.release();
+      }
+    }
+
+    // Para otros estados simplemente actualizar
     order.status = status;
     return this.orderRepo.save(order);
   }

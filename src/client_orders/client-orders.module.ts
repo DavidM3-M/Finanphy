@@ -9,6 +9,7 @@ import { UserEntity } from '../users/entities/user.entity';
 import { Company } from 'src/companies/entities/company.entity';
 import { ProductsModule } from 'src/products/products.module';
 import { CompaniesModule } from 'src/companies/companies.module';
+import { Income } from 'src/finance/entities/income.entity';
 
 @Module({
   imports: [
@@ -17,7 +18,8 @@ import { CompaniesModule } from 'src/companies/companies.module';
       ClientOrderItem,
       Product,
       UserEntity,
-      Company
+      Company,
+      Income
     ]),
     ProductsModule,
     CompaniesModule
