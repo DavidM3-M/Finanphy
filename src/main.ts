@@ -9,7 +9,7 @@ async function ensureUploadsDir() {
   const uploadsDir = path.resolve(process.cwd(), 'uploads');
   try {
     if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
+      fs.mkdirSync(uploadsDir, { recursive: true, mode: 0o755 });
       console.log('Created uploads dir at', uploadsDir);
     } else {
       console.log('Uploads dir exists at', uploadsDir);
@@ -36,7 +36,7 @@ async function bootstrap() {
     }),
   );
 
-  // CORS
+  // CORS: lista de orígenes permitidos
   const allowedOrigins = [
     'http://localhost:3000',
     'http://localhost:3001',
@@ -46,19 +46,30 @@ async function bootstrap() {
 
   app.enableCors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        console.warn(`Blocked by CORS: ${origin}`);
-        callback(new Error('Not allowed by CORS'));
+      if (!origin) return callback(null, true); // allow server-to-server or tools
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
       }
+      console.warn(`Blocked by CORS: ${origin}`);
+      return callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
-  // Servir uploads como estático con headers controlados para evitar problemas de caché/CORS
+  // Middleware que coloca Access-Control-Allow-Origin dinámico para los assets estáticos
+  app.use((req, res, next) => {
+    const origin = req.headers.origin as string | undefined;
+    if (!origin) return next();
+    if ((allowedOrigins as string[]).includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
+    next();
+  });
+
+  // Servir uploads como estático con headers de caché razonables
   const uploadsPath = path.resolve(process.cwd(), 'uploads');
   app.use(
     '/uploads',
@@ -66,9 +77,7 @@ async function bootstrap() {
       etag: true,
       lastModified: true,
       setHeaders: (res, filepath) => {
-        // permitir acceso desde frontend; ajustar dominio si necesitas restringir
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        // Si los archivos llevan filename único (timestamp) usar cache largo e immutable
+        // Asumimos filenames únicos (UUID). Cache largo y immutable es correcto.
         res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
       },
     }),

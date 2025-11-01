@@ -7,10 +7,10 @@ import { ProductsService } from './products.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Product, Company]), // ✅ Registrás ambos repositorios
+    TypeOrmModule.forFeature([Product, Company]), 
   ],
   controllers: [ProductsController],
   providers: [ProductsService],
-  exports: [TypeOrmModule], // ✅ Exportás el acceso a los repositorios
+  exports: [TypeOrmModule], 
 })
 export class ProductsModule {}
