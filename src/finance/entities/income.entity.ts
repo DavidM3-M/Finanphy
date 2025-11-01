@@ -19,6 +19,9 @@ export class Income {
   @Column()
   category!: string;
 
+  @Column({nullable:true})
+  description!:string;
+
   @Column({ nullable: true })
   invoiceNumber?: string;
 

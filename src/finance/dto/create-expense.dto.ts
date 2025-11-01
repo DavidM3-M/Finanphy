@@ -19,6 +19,11 @@ export class CreateExpenseDto {
   @Length(3, 50, { message: 'La categoría debe tener entre 3 y 50 caracteres' })
   category: string;
 
+  @IsString()
+  @Length(1,200, {message: 'la descripcion debe llevar entre 1 y 200 caracteras'})
+  description: string;
+
+
   @IsOptional()
   @IsString()
   @Length(3, 100, { message: 'El proveedor debe tener entre 3 y 100 caracteres' })

@@ -67,6 +67,7 @@ export class ExpensesService {
   const expense = this.expensesRepo.create({
     amount: dto.amount,
     category: dto.category,
+    description: dto.description,
     supplier: dto.supplier,
     entryDate: dto.entryDate ? new Date(dto.entryDate) : undefined,
     dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
@@ -82,6 +83,7 @@ export class ExpensesService {
     expense.amount = dto.amount ?? expense.amount;
     expense.category = dto.category ?? expense.category;
     expense.supplier = dto.supplier ?? expense.supplier;
+    expense.description = dto.description ?? expense.description;
 
     if (dto.entryDate) expense.entryDate = new Date(dto.entryDate);
     if (dto.dueDate) expense.dueDate = new Date(dto.dueDate);

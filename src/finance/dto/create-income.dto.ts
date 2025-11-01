@@ -19,6 +19,10 @@ export class CreateIncomeDto {
   @Length(3, 50, { message: 'La categoría debe tener entre 3 y 50 caracteres' })
   category: string;
 
+  @IsString()
+  @Length(1,200, {message: 'la descripcion debe llevar entre 1 y 200 caracteras'})
+  description: string;
+
   @IsOptional()
   @IsString()
   @Length(0, 20, { message: 'El número de factura no debe exceder los 20 caracteres' })

@@ -85,6 +85,7 @@ export class IncomesService {
     const income = this.incomesRepo.create({
       amount: dto.amount,
       category: dto.category,
+      description: dto.description,
       invoiceNumber: invoiceNumberForCreate,
       entryDate: entryDateForCreate,
       dueDate: dueDateForCreate,
@@ -100,6 +101,7 @@ export class IncomesService {
     income.amount = dto.amount ?? income.amount;
     income.category = dto.category ?? income.category;
     income.invoiceNumber = dto.invoiceNumber ?? income.invoiceNumber;
+    income.description = dto.description ?? income.description;
 
     if (dto.entryDate !== undefined) {
       const parsed = this.parseDateInput(dto.entryDate);
