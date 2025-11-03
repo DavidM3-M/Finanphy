@@ -10,21 +10,20 @@ import {
 
 export class CreateCompanyDto {
   
-  // Legal identity
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   tradeName: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   legalName: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   companyType: string; // e.g., S.A.S., LTDA, S.A.
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   taxId: string;
 
   @IsString()

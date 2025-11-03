@@ -15,17 +15,16 @@ export class Company {
   @Column('uuid')
   userId!: string;
 
-  // Legal identity
   @Column()
   tradeName!: string;
 
-  @Column()
+  @Column({ nullable: true })
   legalName!: string;
 
-  @Column()
-  companyType!: string; // e.g., S.A.S., LTDA, S.A.
+  @Column({ nullable: true })
+  companyType!: string; 
 
-  @Column()
+  @Column({ nullable: true })
   taxId!: string;
 
   @Column({ nullable: true })

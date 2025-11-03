@@ -27,7 +27,7 @@ async create(dto: CreateCompanyDto, userId: string) {
   }
 
   const company = this.repo.create({
-    id: randomUUID(), // 👈 Generación manual
+    id: randomUUID(), 
     ...dto,
     userId,
   });
