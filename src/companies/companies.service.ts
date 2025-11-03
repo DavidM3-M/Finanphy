@@ -21,13 +21,15 @@ export class CompaniesService {
   // Crear empresa asociada al usuario autenticado
 
 async create(dto: CreateCompanyDto, userId: string) {
-  const existing = await this.repo.findOne({ where: { taxId: dto.taxId } });
-  if (existing) {
-    throw new BadRequestException('A company with this tax ID already exists');
+  if (dto.taxId && dto.taxId.trim() !== '') {
+    const existing = await this.repo.findOne({ where: { taxId: dto.taxId.trim() } });
+    if (existing) {
+      throw new BadRequestException('A company with this tax ID already exists');
+    }
   }
 
   const company = this.repo.create({
-    id: randomUUID(), 
+    id: randomUUID(),
     ...dto,
     userId,
   });
