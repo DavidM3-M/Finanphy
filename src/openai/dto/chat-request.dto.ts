@@ -1,10 +1,6 @@
 import { IsArray, ArrayMaxSize, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-
-class MessageDto {
-  role: string;
-  content: string;
-}
+import { MessageDto } from './message.dto';
 
 export class ChatRequestDto {
   @IsArray()
