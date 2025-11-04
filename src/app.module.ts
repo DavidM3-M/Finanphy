@@ -14,9 +14,11 @@ import { CompaniesModule } from './companies/companies.module';
 import { ClientOrdersModule } from './client_orders/client-orders.module';
 import { PublicModule } from './public/public.module';
 import { ReportsModule } from './reports/reports.module';
+
+import { OpenaiModule } from './openai/openai.module';
+
 @Module({
   imports: [
-    // 1. Carga global de variables de entorno con validación
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
@@ -28,10 +30,12 @@ import { ReportsModule } from './reports/reports.module';
         POSTGRES_DATABASE: Joi.string().required(),
         POSTGRES_SSL: Joi.boolean().default(false),
         JWT_SECRET: Joi.string().required(),
+        // valida la clave de OpenAI
+        OPENAI_API_KEY: Joi.string().required(),
+        OPENAI_MAX_REQUESTS_PER_MINUTE: Joi.number().default(10),
       }),
     }),
 
-    // 2. Configuración de TypeORM leyendo valores tipados de ConfigService
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -53,7 +57,6 @@ import { ReportsModule } from './reports/reports.module';
       }),
     }),
 
-    // 3. Registro dinámico del JwtModule con el secreto desde ConfigService
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -63,7 +66,7 @@ import { ReportsModule } from './reports/reports.module';
       }),
     }),
 
-    // 4. Módulos de dominio
+    // módulos de dominio
     UsersModule,
     AuthModule,
     FinanceModule,
@@ -71,10 +74,12 @@ import { ReportsModule } from './reports/reports.module';
     CompaniesModule,
     ClientOrdersModule,
     PublicModule,
-    ReportsModule
+    ReportsModule,
+
+    // importa OpenaiModule aquí
+    OpenaiModule,
   ],
 
-  // 5. Guardia global para proteger rutas y respetar @Public()
   providers: [
     {
       provide: APP_GUARD,
