@@ -13,7 +13,7 @@ export class OpenaiService {
 
   private estimateTokenCount(messages: { role: string; content: string }[]): number {
     const chars = messages.reduce((sum, msg) => sum + (msg.content?.length || 0), 0);
-    return Math.ceil(chars / 4); // estimación conservadora: 1 token ≈ 4 caracteres
+    return Math.ceil(chars / 175); 
   }
 
   private async doRequestWithRetries(payload: any, maxAttempts = 4): Promise<any> {
