@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from "node_modules/class-validator/types";
+import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
 
 // dto/forgot-password.dto.ts
 export class ForgotPasswordDto {
