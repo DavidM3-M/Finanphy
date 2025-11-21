@@ -47,6 +47,7 @@ export class AuthController {
   }
 
   // auth.controller.ts
+@Public()
 @Post('forgot-password')
 forgotPassword(@Body() dto: ForgotPasswordDto) {
   return this.authService.forgotPassword(dto);
