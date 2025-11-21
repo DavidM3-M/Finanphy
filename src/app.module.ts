@@ -16,6 +16,7 @@ import { PublicModule } from './public/public.module';
 import { ReportsModule } from './reports/reports.module';
 
 import { OpenaiModule } from './openai/openai.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -75,6 +76,7 @@ import { OpenaiModule } from './openai/openai.module';
     ClientOrdersModule,
     PublicModule,
     ReportsModule,
+    MailModule,
 
     // importa OpenaiModule aquí
     OpenaiModule,

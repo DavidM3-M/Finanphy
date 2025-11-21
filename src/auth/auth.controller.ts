@@ -15,6 +15,7 @@ import { RolesGuard } from './guards/roles.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { UserEntity } from 'src/users/entities/user.entity';
 import { Public } from './decorators/public.decorator';
+import { ForgotPasswordDto, ResetPasswordDto } from './dto/forgot-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -44,4 +45,15 @@ export class AuthController {
   getAdminData(@CurrentUser() admin: UserEntity) {
     return `Hey ${admin.firstName}, you're an admin`;
   }
+
+  // auth.controller.ts
+@Post('forgot-password')
+forgotPassword(@Body() dto: ForgotPasswordDto) {
+  return this.authService.forgotPassword(dto);
+}
+
+@Post('reset-password')
+resetPassword(@Body() dto: ResetPasswordDto) {
+  return this.authService.resetPassword(dto);
+}
 }

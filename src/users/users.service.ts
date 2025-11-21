@@ -58,4 +58,11 @@ export class UsersService {
 
     await this.usersRepository.delete(id);
   }
+
+  async updatePassword(userId: string, hashedPassword: string) {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) throw new Error('Usuario no encontrado');
+    user.password = hashedPassword;
+    return this.usersRepository.save(user);
+  }
 }
