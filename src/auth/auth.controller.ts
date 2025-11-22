@@ -53,6 +53,7 @@ forgotPassword(@Body() dto: ForgotPasswordDto) {
   return this.authService.forgotPassword(dto);
 }
 
+@Public()
 @Post('reset-password')
 resetPassword(@Body() dto: ResetPasswordDto) {
   return this.authService.resetPassword(dto);
