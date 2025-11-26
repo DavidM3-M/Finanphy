@@ -6,6 +6,7 @@ export class PublicController {
   constructor(private readonly publicService: PublicService) {}
 
   // Catálogo público por empresa
+  @public()
   @Get('products/company/:companyId')
   getCatalog(@Param('companyId', ParseUUIDPipe) companyId: string) {
     return this.publicService.getCatalogByCompany(companyId);
