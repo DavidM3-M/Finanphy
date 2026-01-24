@@ -10,6 +10,7 @@ import {
   Delete,
   UseInterceptors,
   UploadedFile,
+  Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -70,8 +71,10 @@ export class ClientOrdersController {
   findByCompany(
     @Param('companyId', ParseUUIDPipe) companyId: string,
     @CurrentUser() user: UserEntity,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.clientOrdersService.getByCompany(companyId, user.id);
+    return this.clientOrdersService.getByCompany(companyId, user.id, page, limit);
   }
 
   // Usuario ve una orden por ID (sólo propio o de la empresa)
@@ -85,8 +88,12 @@ export class ClientOrdersController {
 
   // Usuario ve todas sus órdenes o las de su empresa
   @Get()
-  findAll(@CurrentUser() user: UserEntity) {
-    return this.clientOrdersService.getAll(user.id);
+  findAll(
+    @CurrentUser() user: UserEntity,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.clientOrdersService.getAll(user.id, page, limit);
   }
 
   // Usuario actualiza estado de una orden

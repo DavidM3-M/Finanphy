@@ -6,6 +6,7 @@ import {
   Delete,
   Param,
   Body,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
@@ -31,8 +32,8 @@ export class UsersController {
 
   @Get()
   @Roles(Role.Admin) // Solo admins pueden ver todos los usuarios
-  async findAll(): Promise<UserEntity[]> {
-    return this.usersService.findAll();
+  async findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
+    return this.usersService.findAll(page, limit);
   }
 
   @Get(':id')

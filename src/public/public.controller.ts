@@ -1,4 +1,4 @@
-import { Controller, Get, Param, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import { PublicService } from './public.service';
 import { Public } from 'src/auth/decorators/public.decorator';
 
@@ -9,7 +9,11 @@ export class PublicController {
   // Catálogo público por empresa
   @Public()
   @Get('products/company/:companyId')
-  getCatalog(@Param('companyId', ParseUUIDPipe) companyId: string) {
-    return this.publicService.getCatalogByCompany(companyId);
+  getCatalog(
+    @Param('companyId', ParseUUIDPipe) companyId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.publicService.getCatalogByCompany(companyId, page, limit);
   }
 }

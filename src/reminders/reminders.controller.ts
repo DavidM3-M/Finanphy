@@ -64,12 +64,16 @@ export class RemindersController {
     @Query('from') from?: string,
     @Query('to') to?: string,
     @Query('companyId') companyId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
     return this.remindersService.findByRangeForUser(
       user.id,
       from,
       to,
       companyId,
+      page,
+      limit,
     );
   }
 

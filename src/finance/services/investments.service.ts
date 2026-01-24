@@ -4,6 +4,10 @@ import { Repository } from 'typeorm';
 import { Investment } from '../entities/investment.entity';
 import { CreateInvestmentDto } from '../dto/create-investment.dto';
 import { UpdateInvestmentDto } from '../dto/update-investment.dto';
+import {
+  buildPaginatedResponse,
+  parsePagination,
+} from 'src/common/helpers/pagination';
 
 @Injectable()
 export class InvestmentsService {
@@ -17,8 +21,15 @@ export class InvestmentsService {
     return this.investmentsRepository.save(newInvestment);
   }
 
-  findAll() {
-    return this.investmentsRepository.find();
+  async findAll(page?: string, limit?: string) {
+    const { page: p, limit: l, offset } = parsePagination(page, limit);
+    const [data, total] = await this.investmentsRepository.findAndCount({
+      skip: offset,
+      take: l,
+      order: { createdAt: 'DESC' },
+    });
+
+    return buildPaginatedResponse(data, total, p, l);
   }
 
   async findOne(id: number) {

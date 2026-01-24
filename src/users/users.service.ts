@@ -4,6 +4,10 @@ import { Repository } from 'typeorm';
 import { UserEntity } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import {
+  buildPaginatedResponse,
+  parsePagination,
+} from 'src/common/helpers/pagination';
 
 @Injectable()
 export class UsersService {
@@ -31,8 +35,14 @@ export class UsersService {
     return this.usersRepository.findOneBy({ id });
   }
 
-  async findAll(): Promise<UserEntity[]> {
-    return this.usersRepository.find();
+  async findAll(page?: string, limit?: string) {
+    const { page: p, limit: l, offset } = parsePagination(page, limit);
+    const [data, total] = await this.usersRepository.findAndCount({
+      skip: offset,
+      take: l,
+    });
+
+    return buildPaginatedResponse(data, total, p, l);
   }
 
   async create(createUserDto: CreateUserDto): Promise<UserEntity> {

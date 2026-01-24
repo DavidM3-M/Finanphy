@@ -8,6 +8,7 @@ import {
   Put,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { ExpensesService } from '../services/expenses.service';
 import { CreateExpenseDto } from '../dto/create-expense.dto';
@@ -26,8 +27,12 @@ export class ExpensesController {
   constructor(private readonly expensesService: ExpensesService) {}
 
   @Get()
-  findAll(@CurrentUser() user: UserEntity) {
-    return this.expensesService.findAllByUser(user.id);
+  findAll(
+    @CurrentUser() user: UserEntity,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.expensesService.findAllByUser(user.id, page, limit);
   }
 
   @Get(':id')

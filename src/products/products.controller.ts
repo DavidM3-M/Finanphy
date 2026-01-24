@@ -59,8 +59,12 @@ export class ProductsController {
   // Lista privada del vendedor
   @Roles(Role.User)
   @Get()
-  findAll(@CurrentUser() user: UserEntity) {
-    return this.productsService.findAllByUser(user.id);
+  findAll(
+    @CurrentUser() user: UserEntity,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.productsService.findAllByUser(user.id, page, limit);
   }
 
   // Obtener producto privado
@@ -154,10 +158,14 @@ export class ProductsController {
 
   // Endpoint público para catálogo (sin token)
   @Get('public')
-  getPublicProducts(@Query('companyId') companyId: string) {
+  getPublicProducts(
+    @Query('companyId') companyId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
     if (!companyId)
       throw new BadRequestException('Falta el parámetro companyId');
-    return this.productsService.findByCompany(companyId);
+    return this.productsService.findByCompany(companyId, page, limit);
   }
 
   // Endpoint que devuelve la imagen binaria guardada en BD
