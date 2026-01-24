@@ -11,6 +11,10 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Company } from 'src/companies/entities/company.entity';
 import { validateCompanyOwnership } from 'src/common/helpers/validateCompanyOwnership';
+import {
+  buildPaginatedResponse,
+  parsePagination,
+} from 'src/common/helpers/pagination';
 
 @Injectable()
 export class ProductsService {
@@ -25,26 +29,37 @@ export class ProductsService {
   ) {}
 
   // Vendedor: ver todos sus productos
-  async findAllByUser(userId: string) {
-    return this.productsRepo
+  async findAllByUser(userId: string, page?: string, limit?: string) {
+    const { page: p, limit: l, offset } = parsePagination(page, limit);
+
+    const [data, total] = await this.productsRepo
       .createQueryBuilder('product')
       .leftJoin('product.company', 'company')
       .where('company.userId = :userId', { userId })
       .orderBy('product.name', 'ASC')
-      .getMany();
+      .skip(offset)
+      .take(l)
+      .getManyAndCount();
+
+    return buildPaginatedResponse(data, total, p, l);
   }
 
   // Cliente: ver catálogo público de una compañía
-  async findAllByCompany(companyId: string) {
+  async findAllByCompany(companyId: string, page?: string, limit?: string) {
     const company = await this.companyRepo.findOne({
       where: { id: companyId },
     });
     if (!company) throw new NotFoundException('Compañía no encontrada');
 
-    return this.productsRepo.find({
+    const { page: p, limit: l, offset } = parsePagination(page, limit);
+    const [data, total] = await this.productsRepo.findAndCount({
       where: { company: { id: companyId } },
       order: { name: 'ASC' },
+      skip: offset,
+      take: l,
     });
+
+    return buildPaginatedResponse(data, total, p, l);
   }
 
   // Vendedor: ver un producto específico
@@ -176,11 +191,16 @@ export class ProductsService {
   }
 
   // Público: listar por companyId (nombre compatible con controller)
-  async findByCompany(companyId: string) {
-    return this.productsRepo.find({
+  async findByCompany(companyId: string, page?: string, limit?: string) {
+    const { page: p, limit: l, offset } = parsePagination(page, limit);
+    const [data, total] = await this.productsRepo.findAndCount({
       where: { companyId },
       order: { name: 'ASC' },
+      skip: offset,
+      take: l,
     });
+
+    return buildPaginatedResponse(data, total, p, l);
   }
 
   // Servir imagen binaria desde la BD

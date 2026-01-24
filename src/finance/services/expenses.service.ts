@@ -11,6 +11,10 @@ import { Expense } from '../entities/expense.entity';
 import { CreateExpenseDto } from '../dto/create-expense.dto';
 import { UpdateExpenseDto } from '../dto/update-expense.dto';
 import { Company } from 'src/companies/entities/company.entity';
+import {
+  buildPaginatedResponse,
+  parsePagination,
+} from 'src/common/helpers/pagination';
 import { validateCompanyOwnership } from 'src/common/helpers/validateCompanyOwnership';
 
 @Injectable()
@@ -37,12 +41,18 @@ export class ExpensesService {
     return companies[0];
   }
 
-  async findAllByUser(userId: string) {
-    return this.expensesRepo
+  async findAllByUser(userId: string, page?: string, limit?: string) {
+    const { page: p, limit: l, offset } = parsePagination(page, limit);
+    const [data, total] = await this.expensesRepo
       .createQueryBuilder('expense')
       .leftJoin('expense.company', 'company')
       .where('company.userId = :userId', { userId })
-      .getMany();
+      .orderBy('expense.createdAt', 'DESC')
+      .skip(offset)
+      .take(l)
+      .getManyAndCount();
+
+    return buildPaginatedResponse(data, total, p, l);
   }
 
   async findOneByUser(id: number, userId: string) {

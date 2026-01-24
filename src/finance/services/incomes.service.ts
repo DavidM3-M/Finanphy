@@ -11,6 +11,10 @@ import { CreateIncomeDto } from '../dto/create-income.dto';
 import { UpdateIncomeDto } from '../dto/update-income.dto';
 import { Company } from 'src/companies/entities/company.entity';
 import { validateCompanyOwnership } from 'src/common/helpers/validateCompanyOwnership';
+import {
+  buildPaginatedResponse,
+  parsePagination,
+} from 'src/common/helpers/pagination';
 
 @Injectable()
 export class IncomesService {
@@ -32,12 +36,18 @@ export class IncomesService {
     return isNaN(d.getTime()) ? null : d;
   }
 
-  async findAllByUser(userId: string) {
-    return this.incomesRepo
+  async findAllByUser(userId: string, page?: string, limit?: string) {
+    const { page: p, limit: l, offset } = parsePagination(page, limit);
+    const [data, total] = await this.incomesRepo
       .createQueryBuilder('income')
       .leftJoin('income.company', 'company')
       .where('company.userId = :userId', { userId })
-      .getMany();
+      .orderBy('income.createdAt', 'DESC')
+      .skip(offset)
+      .take(l)
+      .getManyAndCount();
+
+    return buildPaginatedResponse(data, total, p, l);
   }
 
   async findOneByUser(id: number, userId: string) {

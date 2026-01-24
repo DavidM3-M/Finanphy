@@ -9,6 +9,7 @@ import {
   Put,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { IncomesService } from '../services/incomes.service';
 import { CreateIncomeDto } from '../dto/create-income.dto';
@@ -27,8 +28,12 @@ export class IncomesController {
   constructor(private readonly incomesService: IncomesService) {}
 
   @Get()
-  findAll(@CurrentUser() user: UserEntity) {
-    return this.incomesService.findAllByUser(user.id);
+  findAll(
+    @CurrentUser() user: UserEntity,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.incomesService.findAllByUser(user.id, page, limit);
   }
 
   @Get(':id')

@@ -8,6 +8,7 @@ import {
   Put,
   ParseIntPipe,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { InvestmentsService } from '../services/investments.service';
 import { CreateInvestmentDto } from '../dto/create-investment.dto';
@@ -31,8 +32,8 @@ export class InvestmentsController {
   }
 
   @Get()
-  findAll() {
-    return this.investmentsService.findAll();
+  findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
+    return this.investmentsService.findAll(page, limit);
   }
 
   @Get(':id')

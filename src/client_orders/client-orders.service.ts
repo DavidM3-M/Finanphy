@@ -20,6 +20,10 @@ import { groupItemsByProduct } from './utils/group-items-by-product';
 import { generateOrderCode } from './utils/generate-order-code';
 import { formatOrderSummary } from './utils/format-order-summary';
 import { Income } from 'src/finance/entities/income.entity';
+import {
+  buildPaginatedResponse,
+  parsePagination,
+} from 'src/common/helpers/pagination';
 
 type OrderItemInput = {
   productId: string | number;
@@ -204,7 +208,12 @@ export class ClientOrdersService {
     return { orderCode: order.orderCode, total, resumen };
   }
 
-  async getByCompany(companyId: string, userId: string) {
+  async getByCompany(
+    companyId: string,
+    userId: string,
+    page?: string,
+    limit?: string,
+  ) {
     const company = await this.companyRepo.findOne({
       where: { id: companyId },
     });
@@ -215,11 +224,16 @@ export class ClientOrdersService {
       ? { company: { id: companyId } }
       : { company: { id: companyId }, user: { id: userId } };
 
-    return this.orderRepo.find({
+    const { page: p, limit: l, offset } = parsePagination(page, limit);
+    const [data, total] = await this.orderRepo.findAndCount({
       where,
       relations: ['company', 'user', 'items', 'items.product', 'customer'],
       order: { createdAt: 'DESC' },
+      skip: offset,
+      take: l,
     });
+
+    return buildPaginatedResponse(data, total, p, l);
   }
 
   async getById(orderId: string, userId: string) {
@@ -237,12 +251,17 @@ export class ClientOrdersService {
     return order;
   }
 
-  async getAll(userId: string) {
-    return this.orderRepo.find({
+  async getAll(userId: string, page?: string, limit?: string) {
+    const { page: p, limit: l, offset } = parsePagination(page, limit);
+    const [data, total] = await this.orderRepo.findAndCount({
       where: [{ user: { id: userId } }, { company: { userId: userId } }],
       relations: ['company', 'user', 'items', 'items.product', 'customer'],
       order: { createdAt: 'DESC' },
+      skip: offset,
+      take: l,
     });
+
+    return buildPaginatedResponse(data, total, p, l);
   }
 
   async updateStatus(

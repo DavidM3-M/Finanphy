@@ -13,6 +13,10 @@ import { Company } from 'src/companies/entities/company.entity';
 import { validateCompanyOwnership } from 'src/common/helpers/validateCompanyOwnership';
 import { Income } from 'src/finance/entities/income.entity';
 import { ClientOrder } from 'src/client_orders/entities/client-order.entity';
+import {
+  buildPaginatedResponse,
+  parsePagination,
+} from 'src/common/helpers/pagination';
 
 @Injectable()
 export class RemindersService {
@@ -128,9 +132,13 @@ export class RemindersService {
     from?: string,
     to?: string,
     companyId?: string,
+    page?: string,
+    limit?: string,
   ) {
     const fromDate = this.parseDateInput(from);
     const toDate = this.parseDateInput(to);
+
+    const { page: p, limit: l, offset } = parsePagination(page, limit);
 
     const qb = this.remindersRepo
       .createQueryBuilder('reminder')
@@ -151,7 +159,13 @@ export class RemindersService {
       qb.andWhere('reminder.remindAt <= :to', { to: toDate });
     }
 
-    return qb.orderBy('reminder.remindAt', 'ASC').getMany();
+    const [data, total] = await qb
+      .orderBy('reminder.remindAt', 'ASC')
+      .skip(offset)
+      .take(l)
+      .getManyAndCount();
+
+    return buildPaginatedResponse(data, total, p, l);
   }
 
   async findOneForUser(id: string, userId: string) {
