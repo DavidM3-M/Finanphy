@@ -11,12 +11,20 @@ export class OpenaiService {
 
   constructor(private readonly httpService: HttpService) {}
 
-  private estimateTokenCount(messages: { role: string; content: string }[]): number {
-    const chars = messages.reduce((sum, msg) => sum + (msg.content?.length || 0), 0);
-    return Math.ceil(chars / 175); 
+  private estimateTokenCount(
+    messages: { role: string; content: string }[],
+  ): number {
+    const chars = messages.reduce(
+      (sum, msg) => sum + (msg.content?.length || 0),
+      0,
+    );
+    return Math.ceil(chars / 175);
   }
 
-  private async doRequestWithRetries(payload: any, maxAttempts = 4): Promise<any> {
+  private async doRequestWithRetries(
+    payload: any,
+    maxAttempts = 4,
+  ): Promise<any> {
     let attempt = 0;
     let wait = 500;
 
@@ -37,11 +45,14 @@ export class OpenaiService {
         const status: number | undefined = e?.response?.status;
 
         const shouldRetry =
-          (status === 429 || (typeof status === 'number' && status >= 500 && status < 600)) &&
+          (status === 429 ||
+            (typeof status === 'number' && status >= 500 && status < 600)) &&
           attempt < maxAttempts;
 
         if (shouldRetry) {
-          this.logger.warn(`OpenAI retry ${attempt} after ${wait}ms (status ${status})`);
+          this.logger.warn(
+            `OpenAI retry ${attempt} after ${wait}ms (status ${status})`,
+          );
           await new Promise((resolve) => setTimeout(resolve, wait));
           wait *= 2;
           continue;
@@ -50,7 +61,8 @@ export class OpenaiService {
         this.logger.error('OpenAI request failed', e?.stack || e);
 
         if (status === 401) throw new HttpException('OpenAI key invalid', 502);
-        if (status === 429) throw new HttpException('Rate limited by OpenAI', 429);
+        if (status === 429)
+          throw new HttpException('Rate limited by OpenAI', 429);
 
         throw new HttpException('OpenAI proxy error', 502);
       }
@@ -59,7 +71,10 @@ export class OpenaiService {
     throw new HttpException('OpenAI retries exhausted', 502);
   }
 
-  async chat(messages: { role: string; content: string }[], userId?: string): Promise<any> {
+  async chat(
+    messages: { role: string; content: string }[],
+    userId?: string,
+  ): Promise<any> {
     if (!Array.isArray(messages) || messages.length === 0) {
       throw new HttpException('Invalid messages array', 400);
     }

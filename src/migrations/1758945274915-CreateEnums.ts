@@ -47,6 +47,8 @@ export class CreateEnums1758945274915 implements MigrationInterface {
     await queryRunner.query(`DROP TYPE IF EXISTS investment_type_enum CASCADE`);
     await queryRunner.query(`DROP TYPE IF EXISTS expense_type_enum CASCADE`);
     await queryRunner.query(`DROP TYPE IF EXISTS income_type_enum CASCADE`);
-    await queryRunner.query(`DROP TYPE IF EXISTS client_orders_status_enum CASCADE`);
+    await queryRunner.query(
+      `DROP TYPE IF EXISTS client_orders_status_enum CASCADE`,
+    );
   }
 }

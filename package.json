@@ -27,9 +27,9 @@
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",
-    "@nestjs/common": "^11.0.1",
+    "@nestjs/common": "^11.1.12",
     "@nestjs/config": "4.0.2",
-    "@nestjs/core": "^11.0.1",
+    "@nestjs/core": "^11.1.12",
     "@nestjs/jwt": "^11.0.0",
     "@nestjs/mapped-types": "*",
     "@nestjs/passport": "^11.0.5",
@@ -50,7 +50,7 @@
     "passport-jwt": "^4.0.1",
     "pg": "8.16.3",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1",
+    "rxjs": "^7.8.2",
     "typeorm": "^0.3.26"
   },
   "devDependencies": {

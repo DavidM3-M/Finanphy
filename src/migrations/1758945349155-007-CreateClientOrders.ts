@@ -26,7 +26,7 @@ export class CreateClientOrders1758945349155 implements MigrationInterface {
             name: 'status',
             type: 'enum',
             enum: ['recibido', 'en_proceso', 'enviado'],
-            default:`'recibido'`, 
+            default: `'recibido'`,
           },
           {
             name: 'createdAt',

@@ -5,7 +5,9 @@ import {
   TableForeignKey,
 } from 'typeorm';
 
-export class AddUserRelationToClientOrders1759029740421 implements MigrationInterface {
+export class AddUserRelationToClientOrders1759029740421
+  implements MigrationInterface
+{
   public async up(queryRunner: QueryRunner): Promise<void> {
     // 1) Agregar columna userId (nullable inicialmente)
     await queryRunner.addColumn(
@@ -52,7 +54,9 @@ export class AddUserRelationToClientOrders1759029740421 implements MigrationInte
     // 1) Eliminar la FK si existe
     const table = await queryRunner.getTable('client_orders');
     if (table) {
-      const fk = table.foreignKeys.find(fk => fk.columnNames.includes('userId'));
+      const fk = table.foreignKeys.find((fk) =>
+        fk.columnNames.includes('userId'),
+      );
       if (fk) {
         await queryRunner.dropForeignKey('client_orders', fk);
       }

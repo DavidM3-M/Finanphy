@@ -1,4 +1,5 @@
 import {
+  IsDefined,
   IsEmail,
   IsString,
   MinLength,
@@ -25,5 +26,6 @@ export class RegisterDto {
 
   @ValidateNested()
   @Type(() => CreateCompanyDto)
+  @IsDefined()
   company: CreateCompanyDto;
 }

@@ -1,4 +1,10 @@
-import { Injectable, CanActivate, ExecutionContext, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 
 const windows = new Map<string, { count: number; reset: number }>();
 const WINDOW_MS = 60_000;
@@ -18,7 +24,10 @@ export class RateLimitGuard implements CanActivate {
     entry.count++;
     windows.set(userId, entry);
     if (entry.count > MAX) {
-      throw new HttpException('rate limit exceeded', HttpStatus.TOO_MANY_REQUESTS);
+      throw new HttpException(
+        'rate limit exceeded',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
     return true;
   }

@@ -1,6 +1,8 @@
 import { TableColumnOptions } from 'typeorm';
 
-export function createColumn(options: Partial<TableColumnOptions>): TableColumnOptions {
+export function createColumn(
+  options: Partial<TableColumnOptions>,
+): TableColumnOptions {
   return {
     name: options.name ?? 'unnamed',
     type: options.type ?? 'varchar',

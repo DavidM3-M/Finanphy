@@ -10,7 +10,8 @@ import {
 } from 'typeorm';
 import { Company } from '../../companies/entities/company.entity';
 import { ClientOrderItem } from './client-order-item.entity';
-import { UserEntity } from 'src/users/entities/user.entity';
+import { UserEntity } from '../../users/entities/user.entity';
+import { Customer } from 'src/customers/entities/customer.entity';
 
 @Entity('client_orders')
 export class ClientOrder {
@@ -24,7 +25,7 @@ export class ClientOrder {
   @JoinColumn({ name: 'userId' })
   user!: UserEntity;
 
-  @OneToMany(() => ClientOrderItem, item => item.order, {
+  @OneToMany(() => ClientOrderItem, (item) => item.order, {
     cascade: true,
     eager: true,
   })
@@ -46,4 +47,27 @@ export class ClientOrder {
   @Column('uuid')
   userId!: string;
 
+  @Column('uuid', { nullable: true })
+  customerId?: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  invoiceUrl?: string | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  invoiceFilename?: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  invoiceMime?: string | null;
+
+  @Column({ type: 'bigint', nullable: true })
+  invoiceSize?: number | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  invoiceUploadedAt?: Date | null;
+
+  @ManyToOne(() => Customer, (customer) => customer.orders, {
+    nullable: true,
+  })
+  @JoinColumn({ name: 'customerId' })
+  customer?: Customer | null;
 }

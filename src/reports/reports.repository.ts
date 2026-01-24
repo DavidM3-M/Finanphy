@@ -18,8 +18,12 @@ export class ReportsRepository {
   private readonly logger = new Logger(ReportsRepository.name);
   constructor(private readonly db: DbService) {}
 
-  
-    async getCompanyProductByOrderCount(companyId: string, fromIso: string, toIso: string, status = 'enviado') {
+  async getCompanyProductByOrderCount(
+    companyId: string,
+    fromIso: string,
+    toIso: string,
+    status = 'enviado',
+  ) {
     const sql = `
                 SELECT
         COALESCE(oi."productId"::text, '__no_product__') AS product_key,
@@ -40,11 +44,17 @@ export class ReportsRepository {
     `;
     const res = await this.db.query(sql, [companyId, fromIso, toIso, status]);
     return res.rows || res;
-    }
+  }
 
-  async getCompanyTransactionsForMonth(companyId: string, fromIso: string, toIso: string): Promise<TxRow[]> {
+  async getCompanyTransactionsForMonth(
+    companyId: string,
+    fromIso: string,
+    toIso: string,
+  ): Promise<TxRow[]> {
     if (!companyId || String(companyId).trim() === '') {
-      this.logger.warn('getCompanyTransactionsForMonth called with null/empty companyId; returning []');
+      this.logger.warn(
+        'getCompanyTransactionsForMonth called with null/empty companyId; returning []',
+      );
       return [];
     }
     const cid = String(companyId).trim();
@@ -93,18 +103,26 @@ export class ReportsRepository {
 
     // If you have products referenced by product_id, resolve names.
     // In your schema product table may not exist; guard the lookup.
-    const productIds = Array.from(new Set(rows.map(r => r.product_id).filter(Boolean)));
+    const productIds = Array.from(
+      new Set(rows.map((r) => r.product_id).filter(Boolean)),
+    );
     if (productIds.length) {
       try {
         const pRes = await this.db.query(
           `SELECT id::text, name FROM product WHERE id = ANY($1::uuid[])`,
-          [productIds]
+          [productIds],
         );
         const map = new Map<string, string>();
         pRes.rows.forEach((p: any) => map.set(String(p.id), p.name));
-        rows.forEach(r => { if (r.product_id) r.product_name = map.get(r.product_id) ?? 'Sin producto'; });
+        rows.forEach((r) => {
+          if (r.product_id)
+            r.product_name = map.get(r.product_id) ?? 'Sin producto';
+        });
       } catch (err) {
-        this.logger.warn('No se pudo resolver product names; continuing without them', err?.message);
+        this.logger.warn(
+          'No se pudo resolver product names; continuing without them',
+          err?.message,
+        );
       }
     }
 

@@ -16,7 +16,7 @@ export class ClientOrderItem {
   @Column({ type: 'uuid' })
   orderId!: string;
 
-  @ManyToOne(() => ClientOrder, order => order.items)
+  @ManyToOne(() => ClientOrder, (order) => order.items)
   @JoinColumn({ name: 'orderId' })
   order!: ClientOrder;
 

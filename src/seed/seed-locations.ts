@@ -23,7 +23,9 @@ async function bootstrap() {
     // Buscar admin existente
     const adminUser = await userRepo.findOneBy({ email: 'admin@finanphy.com' });
     if (!adminUser) {
-      throw new Error('No existe el usuario admin. Crea primero el seed de admin.');
+      throw new Error(
+        'No existe el usuario admin. Crea primero el seed de admin.',
+      );
     }
 
     // Recorremos departamentos y municipios

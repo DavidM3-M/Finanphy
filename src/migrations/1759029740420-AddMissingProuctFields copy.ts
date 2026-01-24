@@ -1,6 +1,8 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddMissingProductFields1759029740420 implements MigrationInterface {
+export class AddMissingProductFields1759029740420
+  implements MigrationInterface
+{
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
       DO $$ BEGIN

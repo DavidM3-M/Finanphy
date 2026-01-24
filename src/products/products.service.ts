@@ -36,7 +36,9 @@ export class ProductsService {
 
   // Cliente: ver catálogo público de una compañía
   async findAllByCompany(companyId: string) {
-    const company = await this.companyRepo.findOne({ where: { id: companyId } });
+    const company = await this.companyRepo.findOne({
+      where: { id: companyId },
+    });
     if (!company) throw new NotFoundException('Compañía no encontrada');
 
     return this.productsRepo.find({
@@ -106,7 +108,8 @@ export class ProductsService {
     const stock = this.toNumber((dto as any).stock, 0);
 
     // imageUrl puede ser string | null; si viene undefined -> mantener null
-    const imageUrl = (dto as any).imageUrl === undefined ? null : (dto as any).imageUrl;
+    const imageUrl =
+      (dto as any).imageUrl === undefined ? null : (dto as any).imageUrl;
 
     const product = this.productsRepo.create({
       name: dto.name,
@@ -141,12 +144,17 @@ export class ProductsService {
     // Solo actualizar campos que vienen en dto (incluso si vienen como null)
     if (dto.name !== undefined) product.name = dto.name;
     if (dto.sku !== undefined) product.sku = dto.sku;
-    if (dto.description !== undefined) product.description = dto.description ?? null;
+    if (dto.description !== undefined)
+      product.description = dto.description ?? null;
     if (dto.category !== undefined) product.category = dto.category ?? null;
-    if ((dto as any).imageUrl !== undefined) product.imageUrl = (dto as any).imageUrl ?? null;
-    if ((dto as any).price !== undefined) product.price = this.toNumber((dto as any).price, product.price);
-    if ((dto as any).cost !== undefined) product.cost = this.toNumber((dto as any).cost, product.cost);
-    if ((dto as any).stock !== undefined) product.stock = this.toNumber((dto as any).stock, product.stock);
+    if ((dto as any).imageUrl !== undefined)
+      product.imageUrl = (dto as any).imageUrl ?? null;
+    if ((dto as any).price !== undefined)
+      product.price = this.toNumber((dto as any).price, product.price);
+    if ((dto as any).cost !== undefined)
+      product.cost = this.toNumber((dto as any).cost, product.cost);
+    if ((dto as any).stock !== undefined)
+      product.stock = this.toNumber((dto as any).stock, product.stock);
 
     // Si se subió nueva imagen, sobrescribir campos de imagen
     if ((dto as any).image) {
@@ -176,7 +184,9 @@ export class ProductsService {
   }
 
   // Servir imagen binaria desde la BD
-  async getImageByProductId(productId: string): Promise<{ data: Buffer; mimetype?: string; size?: number } | null> {
+  async getImageByProductId(
+    productId: string,
+  ): Promise<{ data: Buffer; mimetype?: string; size?: number } | null> {
     const product = await this.productsRepo.findOne({
       where: { id: productId },
       select: ['id', 'image_data', 'image_mime', 'image_size'] as any,
@@ -205,7 +215,11 @@ export class ProductsService {
   // Ajusta stock por delta (+ para aumentar, - para reducir).
   // Si se pasa queryRunner, usa ese manager (útil dentro de transacciones externas).
   // Si no se pasa, crea su propio queryRunner para la operación atómica.
-  async adjustStockByDelta(productId: string, delta: number, queryRunner?: QueryRunner) {
+  async adjustStockByDelta(
+    productId: string,
+    delta: number,
+    queryRunner?: QueryRunner,
+  ) {
     if (!Number.isFinite(delta) || delta === 0) {
       throw new BadRequestException('Delta de stock inválido');
     }
@@ -249,12 +263,16 @@ export class ProductsService {
       return prod;
     } catch (err) {
       if (needsOwnRunner && runner) {
-        try { await runner.rollbackTransaction(); } catch (_) {}
+        try {
+          await runner.rollbackTransaction();
+        } catch (_) {}
       }
       throw err;
     } finally {
       if (needsOwnRunner && runner) {
-        try { await runner.release(); } catch (_) {}
+        try {
+          await runner.release();
+        } catch (_) {}
       }
     }
   }

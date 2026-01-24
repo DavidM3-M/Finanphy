@@ -20,24 +20,36 @@ export class CreateIncomeDto {
   category: string;
 
   @IsString()
-  @Length(1,200, {message: 'la descripcion debe llevar entre 1 y 200 caracteras'})
+  @Length(1, 200, {
+    message: 'la descripcion debe llevar entre 1 y 200 caracteras',
+  })
   description: string;
 
   @IsOptional()
   @IsString()
-  @Length(0, 20, { message: 'El número de factura no debe exceder los 20 caracteres' })
+  @Length(0, 20, {
+    message: 'El número de factura no debe exceder los 20 caracteres',
+  })
   invoiceNumber?: string;
 
   @IsOptional()
-  @IsDateString({}, { message: 'La fecha de entrada debe ser una fecha válida' })
+  @IsDateString(
+    {},
+    { message: 'La fecha de entrada debe ser una fecha válida' },
+  )
   entryDate?: string;
 
   @IsOptional()
-  @IsDateString({}, { message: 'La fecha de vencimiento debe ser una fecha válida' })
+  @IsDateString(
+    {},
+    { message: 'La fecha de vencimiento debe ser una fecha válida' },
+  )
   dueDate?: string;
 
   @IsOptional()
   @IsUUID('4', { message: 'El ID de empresa debe ser un UUID válido' })
-  @Transform(({ value }) => value === null || value === '' ? undefined : value)
+  @Transform(({ value }) =>
+    value === null || value === '' ? undefined : value,
+  )
   companyId?: string;
 }

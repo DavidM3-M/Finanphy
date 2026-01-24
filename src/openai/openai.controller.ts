@@ -1,4 +1,11 @@
-import { Controller, Post, Body, UseGuards, Req, HttpCode } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Req,
+  HttpCode,
+} from '@nestjs/common';
 import { OpenaiService } from './openai.service';
 import { ChatRequestDto } from './dto/chat-request.dto';
 import { AuthGuard } from 'src/auth/guards/auth.guard';

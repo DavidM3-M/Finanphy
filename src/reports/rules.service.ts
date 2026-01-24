@@ -1,5 +1,9 @@
 // src/reports/rules.service.ts
-import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  UnauthorizedException,
+} from '@nestjs/common';
 
 export type PeriodRange = { fromIso: string; toIso: string };
 
@@ -13,12 +17,20 @@ export class RulesService {
     if (!period) return this.currentMonthRange();
 
     const parts = period.split('-');
-    if (parts.length !== 2) throw new BadRequestException('period must have format YYYY-MM');
+    if (parts.length !== 2)
+      throw new BadRequestException('period must have format YYYY-MM');
 
     const year = Number(parts[0]);
     const month = Number(parts[1]);
-    if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
-      throw new BadRequestException('period must have format YYYY-MM with valid month');
+    if (
+      !Number.isInteger(year) ||
+      !Number.isInteger(month) ||
+      month < 1 ||
+      month > 12
+    ) {
+      throw new BadRequestException(
+        'period must have format YYYY-MM with valid month',
+      );
     }
 
     const start = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
@@ -32,7 +44,8 @@ export class RulesService {
    */
   normalizeTopN(top?: number | null, defaultN = 5, maxN = 50): number {
     if (top === undefined || top === null) return defaultN;
-    if (!Number.isInteger(top) || top <= 0) throw new BadRequestException('topN must be a positive integer');
+    if (!Number.isInteger(top) || top <= 0)
+      throw new BadRequestException('topN must be a positive integer');
     return Math.min(top, maxN);
   }
 
@@ -40,11 +53,20 @@ export class RulesService {
    * Resolve which target user id to use depending on requester role.
    * Throws if unauthorized to query another user's data.
    */
-  resolveTargetUserId(requesterId: number, requesterRole: string, userIdQuery?: number | string): number {
-    if (userIdQuery === undefined || userIdQuery === null || userIdQuery === '') return requesterId;
+  resolveTargetUserId(
+    requesterId: number,
+    requesterRole: string,
+    userIdQuery?: number | string,
+  ): number {
+    if (userIdQuery === undefined || userIdQuery === null || userIdQuery === '')
+      return requesterId;
     const parsed = Number(userIdQuery);
-    if (!Number.isInteger(parsed) || parsed <= 0) throw new BadRequestException('userId must be a positive integer');
-    if (requesterRole !== 'Admin') throw new UnauthorizedException('Not authorized to request other user reports');
+    if (!Number.isInteger(parsed) || parsed <= 0)
+      throw new BadRequestException('userId must be a positive integer');
+    if (requesterRole !== 'Admin')
+      throw new UnauthorizedException(
+        'Not authorized to request other user reports',
+      );
     return parsed;
   }
 
@@ -78,8 +100,12 @@ export class RulesService {
 
   private currentMonthRange(): PeriodRange {
     const now = new Date();
-    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0));
-    const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0));
+    const start = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0),
+    );
+    const end = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0),
+    );
     return { fromIso: start.toISOString(), toIso: end.toISOString() };
   }
 

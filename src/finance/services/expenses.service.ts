@@ -34,8 +34,8 @@ export class ExpensesService {
       throw new BadRequestException('Debes especificar la empresa');
     }
 
-  return companies[0];
-}
+    return companies[0];
+  }
 
   async findAllByUser(userId: string) {
     return this.expensesRepo
@@ -60,22 +60,22 @@ export class ExpensesService {
   }
 
   async createForUser(dto: CreateExpenseDto, userId: string) {
-  const company = dto.companyId
-    ? await validateCompanyOwnership(this.companyRepo, dto.companyId, userId)
-    : await this.getDefaultCompanyForUser(userId);
+    const company = dto.companyId
+      ? await validateCompanyOwnership(this.companyRepo, dto.companyId, userId)
+      : await this.getDefaultCompanyForUser(userId);
 
-  const expense = this.expensesRepo.create({
-    amount: dto.amount,
-    category: dto.category,
-    description: dto.description,
-    supplier: dto.supplier,
-    entryDate: dto.entryDate ? new Date(dto.entryDate) : undefined,
-    dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
-    company,
-  });
+    const expense = this.expensesRepo.create({
+      amount: dto.amount,
+      category: dto.category,
+      description: dto.description,
+      supplier: dto.supplier,
+      entryDate: dto.entryDate ? new Date(dto.entryDate) : undefined,
+      dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
+      company,
+    });
 
-  return this.expensesRepo.save(expense);
-}
+    return this.expensesRepo.save(expense);
+  }
 
   async updateForUser(id: number, dto: UpdateExpenseDto, userId: string) {
     const expense = await this.findOneByUser(id, userId);

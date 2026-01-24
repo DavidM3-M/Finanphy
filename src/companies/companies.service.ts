@@ -20,22 +20,29 @@ export class CompaniesService {
 
   // Crear empresa asociada al usuario autenticado
 
-async create(dto: CreateCompanyDto, userId: string) {
-  if (dto.taxId && dto.taxId.trim() !== '') {
-    const existing = await this.repo.findOne({ where: { taxId: dto.taxId.trim() } });
-    if (existing) {
-      throw new BadRequestException('A company with this tax ID already exists');
+  async create(dto: CreateCompanyDto, userId: string) {
+    if (!dto) {
+      throw new BadRequestException('Company data is required');
     }
+    if (dto.taxId && dto.taxId.trim() !== '') {
+      const existing = await this.repo.findOne({
+        where: { taxId: dto.taxId.trim() },
+      });
+      if (existing) {
+        throw new BadRequestException(
+          'A company with this tax ID already exists',
+        );
+      }
+    }
+
+    const company = this.repo.create({
+      id: randomUUID(),
+      ...dto,
+      userId,
+    });
+
+    return this.repo.save(company);
   }
-
-  const company = this.repo.create({
-    id: randomUUID(),
-    ...dto,
-    userId,
-  });
-
-  return this.repo.save(company);
-}
 
   // Obtener todas las empresas del usuario autenticado
   async findAllByUser(userId: string) {

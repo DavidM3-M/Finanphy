@@ -9,9 +9,7 @@ import { DbService } from 'src/db/db.service';
 import { Product } from '../products/entities/product.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Product]),
-  ],
+  imports: [TypeOrmModule.forFeature([Product])],
   controllers: [ReportsController],
   providers: [ReportsService, ReportsRepository, RulesService, DbService],
   exports: [ReportsService],

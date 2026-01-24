@@ -1,5 +1,10 @@
 // src/db/db.service.ts
-import { Injectable, OnModuleDestroy, Logger, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleDestroy,
+  Logger,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { Pool, PoolClient, QueryConfig, QueryResult } from 'pg';
 
 function sleep(ms: number) {
@@ -14,15 +19,20 @@ export class DbService implements OnModuleDestroy {
   private buildConnectionString(): string {
     if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
 
-    const user = process.env.POSTGRES_USERNAME || process.env.POSTGRES_USER || 'postgres';
-    const pass = process.env.POSTGRES_PASSWORD || process.env.POSTGRES_PASS || '';
+    const user =
+      process.env.POSTGRES_USERNAME || process.env.POSTGRES_USER || 'postgres';
+    const pass =
+      process.env.POSTGRES_PASSWORD || process.env.POSTGRES_PASS || '';
     const hostRaw = process.env.POSTGRES_HOST || '127.0.0.1';
     const host = hostRaw === 'localhost' ? '127.0.0.1' : hostRaw;
     const port = process.env.POSTGRES_PORT || '5432';
     const db = process.env.POSTGRES_DATABASE || 'postgres';
-    const sslFlag = (process.env.POSTGRES_SSL || 'false').toLowerCase() === 'true';
+    const sslFlag =
+      (process.env.POSTGRES_SSL || 'false').toLowerCase() === 'true';
 
-    const auth = pass ? `${encodeURIComponent(user)}:${encodeURIComponent(pass)}@` : `${encodeURIComponent(user)}@`;
+    const auth = pass
+      ? `${encodeURIComponent(user)}:${encodeURIComponent(pass)}@`
+      : `${encodeURIComponent(user)}@`;
     const base = `postgres://${auth}${host}:${port}/${db}`;
     return sslFlag ? `${base}?ssl=true` : base;
   }
@@ -44,7 +54,9 @@ export class DbService implements OnModuleDestroy {
       // ssl: { rejectUnauthorized: false } // enable if needed for remote DBs
     });
 
-    this.logger.log(`Postgres pool created (lazy) - host from connection string`);
+    this.logger.log(
+      `Postgres pool created (lazy) - host from connection string`,
+    );
     return this.pool;
   }
 
@@ -60,11 +72,16 @@ export class DbService implements OnModuleDestroy {
       } catch (err) {
         lastErr = err;
         const delay = baseDelay * Math.pow(2, i);
-        this.logger.warn(`DB connect attempt ${i + 1} failed. Retrying in ${delay}ms`);
+        this.logger.warn(
+          `DB connect attempt ${i + 1} failed. Retrying in ${delay}ms`,
+        );
         await sleep(delay);
       }
     }
-    this.logger.error('No se pudo conectar a la DB después de reintentos', lastErr);
+    this.logger.error(
+      'No se pudo conectar a la DB después de reintentos',
+      lastErr,
+    );
     throw lastErr;
   }
 
@@ -74,13 +91,22 @@ export class DbService implements OnModuleDestroy {
    */
   async ensureConnected() {
     try {
-      await this.connectWithRetry(Number(process.env.DB_CONNECT_RETRIES) || 5, Number(process.env.DB_CONNECT_BASE_DELAY_MS) || 200);
+      await this.connectWithRetry(
+        Number(process.env.DB_CONNECT_RETRIES) || 5,
+        Number(process.env.DB_CONNECT_BASE_DELAY_MS) || 200,
+      );
     } catch (err) {
-      this.logger.warn('ensureConnected falló; próximas queries intentarán reconectar', err);
+      this.logger.warn(
+        'ensureConnected falló; próximas queries intentarán reconectar',
+        err,
+      );
     }
   }
 
-  async query<T = any>(text: string | QueryConfig, params?: any[]): Promise<QueryResult<T>> {
+  async query<T = any>(
+    text: string | QueryConfig,
+    params?: any[],
+  ): Promise<QueryResult<T>> {
     const pool = this.getPool();
     let client: PoolClient | null = null;
     try {

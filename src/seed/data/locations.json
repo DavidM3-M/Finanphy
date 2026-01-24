@@ -1,10 +1,7 @@
 [
   {
     "department": "Amazonas",
-    "municipalities": [
-      "Leticia",
-      "Puerto Nariño"
-    ]
+    "municipalities": ["Leticia", "Puerto Nariño"]
   },
   {
     "department": "Antioquia",
@@ -704,9 +701,7 @@
   },
   {
     "department": "Guainía",
-    "municipalities": [
-      "Inírida"
-    ]
+    "municipalities": ["Inírida"]
   },
   {
     "department": "Guaviare",
@@ -1019,10 +1014,7 @@
   },
   {
     "department": "San Andrés y Providencia",
-    "municipalities": [
-      "Providencia y Santa Catalina Islas",
-      "San Andrés"
-    ]
+    "municipalities": ["Providencia y Santa Catalina Islas", "San Andrés"]
   },
   {
     "department": "Santander",
@@ -1248,11 +1240,7 @@
   },
   {
     "department": "Vaupés",
-    "municipalities": [
-      "Carurú",
-      "Mitú",
-      "Taraira"
-    ]
+    "municipalities": ["Carurú", "Mitú", "Taraira"]
   },
   {
     "department": "Vichada",

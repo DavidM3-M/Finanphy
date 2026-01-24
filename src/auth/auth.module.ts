@@ -18,9 +18,9 @@ import { MailModule } from 'src/mail/mail.module';
       signOptions: { expiresIn: '1h' },
     }),
     CompaniesModule,
-    MailModule
+    MailModule,
   ],
   providers: [AuthService, JwtStrategy],
-  controllers: [AuthController]
+  controllers: [AuthController],
 })
 export class AuthModule {}

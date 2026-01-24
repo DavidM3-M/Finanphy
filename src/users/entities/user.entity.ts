@@ -1,5 +1,6 @@
 import { Role } from '../../auth/enums/role.enum';
 import { Company } from '../../companies/entities/company.entity';
+import { Reminder } from '../../reminders/entities/reminder.entity';
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
@@ -27,4 +28,7 @@ export class UserEntity {
 
   @OneToMany(() => Company, (company) => company.user)
   companies!: Company[];
+
+  @OneToMany(() => Reminder, (reminder) => reminder.user)
+  reminders!: Reminder[];
 }
