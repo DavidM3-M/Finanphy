@@ -41,11 +41,12 @@ export class ReportsController {
     }
 
     // Prioridad: Header X-Company-Id -> token claim -> query param (solo Admin)
-    const headerCompanyId = (req.headers['x-company-id'] ?? req.headers['x-company-Id']) as
-      | string
-      | undefined;
+    const headerCompanyId = (req.headers['x-company-id'] ??
+      req.headers['x-company-Id']) as string | undefined;
     const tokenCompanyId =
-      currentUser?.companyId ?? currentUser?.company?.id ?? currentUser?.company_id;
+      currentUser?.companyId ??
+      currentUser?.company?.id ??
+      currentUser?.company_id;
     let targetCompanyId: string | undefined;
 
     if (headerCompanyId && String(headerCompanyId).trim() !== '') {
@@ -55,10 +56,15 @@ export class ReportsController {
     } else if (companyIdQuery) {
       const role = currentUser?.role ?? currentUser?.roles;
       if (role !== Role.Admin) {
-        throw new ForbiddenException('No tienes permisos para solicitar el reporte de otra compañía');
+        throw new ForbiddenException(
+          'No tienes permisos para solicitar el reporte de otra compañía',
+        );
       }
       const candidate = String(companyIdQuery).trim();
-      if (!candidate) throw new BadRequestException('El companyId proporcionado no es válido');
+      if (!candidate)
+        throw new BadRequestException(
+          'El companyId proporcionado no es válido',
+        );
       targetCompanyId = candidate;
     } else {
       throw new BadRequestException(
@@ -94,12 +100,15 @@ export class ReportsController {
     );
 
     // Always return the full report produced by the service (no suppression)
-    const report = await this.reportsService.generateMonthlyReportForCompany(targetCompanyId, {
-      period,
-      topN,
-      requesterId: String(currentUser.id),
-      orderStatus: orderStatus ?? 'enviado',
-    });
+    const report = await this.reportsService.generateMonthlyReportForCompany(
+      targetCompanyId,
+      {
+        period,
+        topN,
+        requesterId: String(currentUser.id),
+        orderStatus: orderStatus ?? 'enviado',
+      },
+    );
 
     return report;
   }

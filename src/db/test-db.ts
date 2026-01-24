@@ -12,7 +12,8 @@ const client = new Client({
   database: process.env.POSTGRES_DATABASE || 'finanphy',
 });
 
-client.connect()
+client
+  .connect()
   .then(() => {
     console.log('✅ Conexión exitosa con PostgreSQL');
     return client.end();

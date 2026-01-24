@@ -32,7 +32,10 @@ export class IncomesController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: UserEntity) {
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: UserEntity,
+  ) {
     return this.incomesService.findOneByUser(id, user.id);
   }
 
@@ -51,7 +54,10 @@ export class IncomesController {
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: UserEntity) {
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: UserEntity,
+  ) {
     return this.incomesService.removeForUser(id, user.id);
   }
 }

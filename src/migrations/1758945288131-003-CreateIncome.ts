@@ -71,7 +71,7 @@ export class CreateIncome1758945288131 implements MigrationInterface {
   public async down(queryRunner: QueryRunner): Promise<void> {
     const table = await queryRunner.getTable('income');
     if (table) {
-      const foreignKey = table.foreignKeys.find(fk =>
+      const foreignKey = table.foreignKeys.find((fk) =>
         fk.columnNames.includes('companyId'),
       );
       if (foreignKey) {

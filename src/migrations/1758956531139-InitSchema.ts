@@ -56,7 +56,9 @@ export class InitSchema1758956531139 implements MigrationInterface {
         CONSTRAINT "FK_product_companyId" FOREIGN KEY ("companyId") REFERENCES "companies"("id")
       )
     `);
-    await queryRunner.query(`CREATE UNIQUE INDEX IF NOT EXISTS "UQ_product_sku_company" ON "product" ("sku", "companyId")`);
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX IF NOT EXISTS "UQ_product_sku_company" ON "product" ("sku", "companyId")`,
+    );
 
     // CLIENT ORDERS
     await queryRunner.query(`

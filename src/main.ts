@@ -3,9 +3,13 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import fs from 'fs';
 import path from 'path';
-import express from 'express';
+import express, {
+  type NextFunction,
+  type Request,
+  type Response,
+} from 'express';
 
-async function ensureUploadsDir() {
+function ensureUploadsDir() {
   const uploadsDir = path.resolve(process.cwd(), 'uploads');
   try {
     if (!fs.existsSync(uploadsDir)) {
@@ -23,7 +27,7 @@ async function ensureUploadsDir() {
 
 async function bootstrap() {
   // crear uploads antes de inicializar Nest
-  await ensureUploadsDir();
+  ensureUploadsDir();
 
   const app = await NestFactory.create(AppModule);
 
@@ -45,13 +49,20 @@ async function bootstrap() {
   ];
 
   app.enableCors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true); // allow server-to-server or tools
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
+      if (!origin) {
+        callback(null, true); // allow server-to-server or tools
+        return;
+      }
       if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
+        callback(null, true);
+        return;
       }
       console.warn(`Blocked by CORS: ${origin}`);
-      return callback(new Error('Not allowed by CORS'));
+      callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
@@ -59,10 +70,22 @@ async function bootstrap() {
   });
 
   // Middleware que coloca Access-Control-Allow-Origin dinámico para los assets estáticos
-  app.use((req, res, next) => {
-    const origin = req.headers.origin as string | undefined;
-    if (!origin) return next();
-    if ((allowedOrigins as string[]).includes(origin)) {
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const originHeader: unknown = req.headers.origin;
+    let origin: string | undefined;
+    if (typeof originHeader === 'string') {
+      origin = originHeader;
+    } else if (
+      Array.isArray(originHeader) &&
+      typeof originHeader[0] === 'string'
+    ) {
+      origin = originHeader[0];
+    }
+    if (!origin || origin.length === 0) {
+      next();
+      return;
+    }
+    if (allowedOrigins.includes(origin)) {
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Access-Control-Allow-Credentials', 'true');
     }
@@ -76,7 +99,7 @@ async function bootstrap() {
     express.static(uploadsPath, {
       etag: true,
       lastModified: true,
-      setHeaders: (res, filepath) => {
+      setHeaders: (res: Response) => {
         // Asumimos filenames únicos (UUID). Cache largo y immutable es correcto.
         res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
       },

@@ -25,5 +25,12 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false
   },
-  "include": ["src", "src/types", "src/data-source.ts", "src/migrations", "scripts", "tests"]
+  "include": [
+    "src",
+    "src/types",
+    "src/data-source.ts",
+    "src/migrations",
+    "scripts",
+    "tests"
+  ]
 }

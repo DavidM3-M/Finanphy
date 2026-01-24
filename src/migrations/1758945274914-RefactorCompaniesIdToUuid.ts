@@ -1,7 +1,9 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 import { randomUUID } from 'crypto';
 
-export class RefactorCompaniesIdToUuid1758945274914 implements MigrationInterface {
+export class RefactorCompaniesIdToUuid1758945274914
+  implements MigrationInterface
+{
   public async up(queryRunner: QueryRunner): Promise<void> {
     // 1) Agregar columna temporal (uuid sin extensiones)
     await queryRunner.query(`

@@ -9,7 +9,7 @@ function processFile(filePath: string) {
 
   const updated = content.replace(
     /^(\s+)(\w+): ([\w\[\]]+);$/gm,
-    (_, indent, name, type) => `${indent}${name}!: ${type};`
+    (_, indent, name, type) => `${indent}${name}!: ${type};`,
   );
 
   if (updated !== content) {

@@ -114,10 +114,10 @@ export class CreateCompanies1758945274913 implements MigrationInterface {
     );
   }
 
-    public async down(queryRunner: QueryRunner): Promise<void> {
+  public async down(queryRunner: QueryRunner): Promise<void> {
     const table = await queryRunner.getTable('companies');
     if (table) {
-      const foreignKey = table.foreignKeys.find(fk =>
+      const foreignKey = table.foreignKeys.find((fk) =>
         fk.columnNames.includes('userId'),
       );
       if (foreignKey) {

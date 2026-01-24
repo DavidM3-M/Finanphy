@@ -6,11 +6,9 @@ import { ProductsController } from './products.controller';
 import { ProductsService } from './products.service';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Product, Company]), 
-  ],
+  imports: [TypeOrmModule.forFeature([Product, Company])],
   controllers: [ProductsController],
   providers: [ProductsService],
-  exports: [TypeOrmModule], 
+  exports: [TypeOrmModule],
 })
 export class ProductsModule {}

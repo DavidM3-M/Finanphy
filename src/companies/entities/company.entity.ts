@@ -5,7 +5,15 @@ import { Income } from '../../finance/entities/income.entity';
 import { Investment } from '../../finance/entities/investment.entity';
 import { Product } from '../../products/entities/product.entity';
 import { UserEntity } from '../../users/entities/user.entity';
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'typeorm';
+import { Reminder } from '../../reminders/entities/reminder.entity';
+import { Customer } from '../../customers/entities/customer.entity';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  OneToMany,
+} from 'typeorm';
 
 @Entity('companies')
 export class Company {
@@ -22,7 +30,7 @@ export class Company {
   legalName!: string;
 
   @Column({ nullable: true })
-  companyType!: string; 
+  companyType!: string;
 
   @Column({ nullable: true })
   taxId!: string;
@@ -58,22 +66,27 @@ export class Company {
   @Column({ nullable: true })
   incorporationDate!: string;
 
-  @ManyToOne(() => UserEntity, user => user.companies)
+  @ManyToOne(() => UserEntity, (user) => user.companies)
   user!: UserEntity;
 
-  @OneToMany(() => Income, income => income.company)
+  @OneToMany(() => Income, (income) => income.company)
   incomes!: Income[];
 
-  @OneToMany(() => Expense, expense => expense.company)
+  @OneToMany(() => Expense, (expense) => expense.company)
   expenses!: Expense[];
 
-  @OneToMany(() => Investment, investment => investment.company)
+  @OneToMany(() => Investment, (investment) => investment.company)
   investments!: Investment[];
 
-  @OneToMany(() => Product, product => product.company)
+  @OneToMany(() => Product, (product) => product.company)
   products!: Product[];
 
   @OneToMany(() => ClientOrder, (order: ClientOrder) => order.company)
   orders!: ClientOrder[];
 
+  @OneToMany(() => Reminder, (reminder) => reminder.company)
+  reminders!: Reminder[];
+
+  @OneToMany(() => Customer, (customer) => customer.company)
+  customers!: Customer[];
 }

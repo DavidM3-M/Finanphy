@@ -11,7 +11,8 @@ export class ReportsService {
 
   constructor(
     private readonly repo: ReportsRepository,
-    @InjectRepository(Product) private readonly productRepo: Repository<Product>,
+    @InjectRepository(Product)
+    private readonly productRepo: Repository<Product>,
   ) {}
 
   async generateMonthlyReportForCompany(
@@ -29,8 +30,12 @@ export class ReportsService {
     const statusToConsider = opts?.orderStatus ?? 'enviado';
 
     const { start, end } = this.periodBoundaries(period);
-    const prevStart = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() - 1, 1));
-    const prevEnd = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1));
+    const prevStart = new Date(
+      Date.UTC(start.getUTCFullYear(), start.getUTCMonth() - 1, 1),
+    );
+    const prevEnd = new Date(
+      Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1),
+    );
 
     const fromIso = start.toISOString();
     const toIso = end.toISOString();
@@ -42,16 +47,32 @@ export class ReportsService {
       return Number.isFinite(n) ? n : 0;
     };
 
-    this.logger.debug(`ReportsService: generating for company=${companyId} period=${period} status=${statusToConsider} requester=${requesterId}`);
+    this.logger.debug(
+      `ReportsService: generating for company=${companyId} period=${period} status=${statusToConsider} requester=${requesterId}`,
+    );
 
     // Aggregation by orders (only orders with given status)
     const [agg, aggPrev] = await Promise.all([
-      this.repo.getCompanyProductByOrderCount(companyId, fromIso, toIso, statusToConsider),
-      this.repo.getCompanyProductByOrderCount(companyId, prevFromIso, prevToIso, statusToConsider),
+      this.repo.getCompanyProductByOrderCount(
+        companyId,
+        fromIso,
+        toIso,
+        statusToConsider,
+      ),
+      this.repo.getCompanyProductByOrderCount(
+        companyId,
+        prevFromIso,
+        prevToIso,
+        statusToConsider,
+      ),
     ]);
 
-    this.logger.debug(`ReportsService: agg rows=${(agg || []).length} aggPrev rows=${(aggPrev || []).length}`);
-    this.logger.debug(`ReportsService: sample agg=${JSON.stringify((agg || []).slice(0,5))}`);
+    this.logger.debug(
+      `ReportsService: agg rows=${(agg || []).length} aggPrev rows=${(aggPrev || []).length}`,
+    );
+    this.logger.debug(
+      `ReportsService: sample agg=${JSON.stringify((agg || []).slice(0, 5))}`,
+    );
 
     // Build grouped data from aggregation
     const grouped = (agg || []).map((r: any) => ({
@@ -63,27 +84,32 @@ export class ReportsService {
       cost: Number(r.total_cost || 0),
     }));
 
-    const groupedPrevRevenue = (aggPrev || []).reduce((s: number, r: any) => s + Number(r.total_revenue || 0), 0);
+    const groupedPrevRevenue = (aggPrev || []).reduce(
+      (s: number, r: any) => s + Number(r.total_revenue || 0),
+      0,
+    );
 
     const totalIncome = grouped.reduce((s, g) => s + g.revenue, 0);
     const costTotal = grouped.reduce((s, g) => s + g.cost, 0);
     const salesCount = grouped.reduce((s, g) => s + g.ordersCount, 0);
 
     // Sort and build top/bottom by ordersCount (tie-breaker revenue -> quantity -> id)
-    const sortedByOrdersDesc = [...grouped].sort((a, b) =>
-      b.ordersCount - a.ordersCount ||
-      b.revenue - a.revenue ||
-      b.quantity - a.quantity ||
-      String(a.id ?? '').localeCompare(String(b.id ?? '')),
+    const sortedByOrdersDesc = [...grouped].sort(
+      (a, b) =>
+        b.ordersCount - a.ordersCount ||
+        b.revenue - a.revenue ||
+        b.quantity - a.quantity ||
+        String(a.id ?? '').localeCompare(String(b.id ?? '')),
     );
-    const sortedByOrdersAsc = [...grouped].sort((a, b) =>
-      a.ordersCount - b.ordersCount ||
-      b.revenue - a.revenue ||
-      b.quantity - a.quantity ||
-      String(a.id ?? '').localeCompare(String(b.id ?? '')),
+    const sortedByOrdersAsc = [...grouped].sort(
+      (a, b) =>
+        a.ordersCount - b.ordersCount ||
+        b.revenue - a.revenue ||
+        b.quantity - a.quantity ||
+        String(a.id ?? '').localeCompare(String(b.id ?? '')),
     );
 
-    const topProductsComputed = sortedByOrdersDesc.slice(0, topN).map(p => ({
+    const topProductsComputed = sortedByOrdersDesc.slice(0, topN).map((p) => ({
       id: p.id,
       name: p.name,
       orders: p.ordersCount,
@@ -91,13 +117,15 @@ export class ReportsService {
       revenue: p.revenue,
     }));
 
-    const bottomProductsComputed = sortedByOrdersAsc.slice(0, topN).map(p => ({
-      id: p.id,
-      name: p.name,
-      orders: p.ordersCount,
-      quantity: p.quantity,
-      revenue: p.revenue,
-    }));
+    const bottomProductsComputed = sortedByOrdersAsc
+      .slice(0, topN)
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        orders: p.ordersCount,
+        quantity: p.quantity,
+        revenue: p.revenue,
+      }));
 
     // Profitability
     let profitabilityPct: number | null;
@@ -106,18 +134,22 @@ export class ReportsService {
     } else if (costTotal === 0) {
       profitabilityPct = null;
     } else {
-      profitabilityPct = Number((((totalIncome - costTotal) / totalIncome) * 100).toFixed(2));
+      profitabilityPct = Number(
+        (((totalIncome - costTotal) / totalIncome) * 100).toFixed(2),
+      );
     }
 
     // Resolve product details for cost validation (best-effort)
-    const productIds = grouped.map(g => g.id).filter(Boolean) as string[];
+    const productIds = grouped.map((g) => g.id).filter(Boolean) as string[];
     const missingCostProductIds = new Set<string>();
     if (productIds.length) {
       try {
-        const products = await this.productRepo.find({ where: { id: In(productIds) } });
+        const products = await this.productRepo.find({
+          where: { id: In(productIds) },
+        });
         const prodMap = new Map<string, Product>();
-        products.forEach(p => prodMap.set(String((p as any).id), p));
-        grouped.forEach(g => {
+        products.forEach((p) => prodMap.set(String((p as any).id), p));
+        grouped.forEach((g) => {
           if (!g.id) return;
           const prod = prodMap.get(String(g.id));
           if (!prod) {
@@ -128,28 +160,65 @@ export class ReportsService {
           if (unitCost === 0) missingCostProductIds.add(String(g.id));
         });
       } catch (err) {
-        this.logger.warn('Failed to resolve products for cost verification', err?.message ?? err);
-        productIds.forEach(id => missingCostProductIds.add(id));
+        this.logger.warn(
+          'Failed to resolve products for cost verification',
+          err?.message ?? err,
+        );
+        productIds.forEach((id) => missingCostProductIds.add(id));
       }
     }
 
     const notes: string[] = ['Report generated by companyId'];
     if (missingCostProductIds.size > 0) {
-      notes.push(`${missingCostProductIds.size} product(s) missing cost info; profitability may be incomplete`);
+      notes.push(
+        `${missingCostProductIds.size} product(s) missing cost info; profitability may be incomplete`,
+      );
     }
 
-    const previousComparison = this.buildPreviousComparison(groupedPrevRevenue, totalIncome);
+    const previousComparison = this.buildPreviousComparison(
+      groupedPrevRevenue,
+      totalIncome,
+    );
 
-    const suggestions = bottomProductsComputed.slice(0, 3).map(p => `Consider promoting ${p.name || 'unnamed product'} (sold ${p.quantity}).`);
+    const suggestions = bottomProductsComputed
+      .slice(0, 3)
+      .map(
+        (p) =>
+          `Consider promoting ${p.name || 'unnamed product'} (sold ${p.quantity}).`,
+      );
     const goals = [
-      { label: 'Revenue target', target: Math.round(totalIncome * 1.05), unit: 'currency' as const, rationale: '5% uplift' },
-      { label: 'Profitability target', target: 5, unit: 'percent' as const, rationale: 'Improve margin by 5 p.p.' },
+      {
+        label: 'Revenue target',
+        target: Math.round(totalIncome * 1.05),
+        unit: 'currency' as const,
+        rationale: '5% uplift',
+      },
+      {
+        label: 'Profitability target',
+        target: 5,
+        unit: 'percent' as const,
+        rationale: 'Improve margin by 5 p.p.',
+      },
     ];
 
     // Expose product-level details (controller will hide for non-privileged users)
-    const salesByProduct = grouped.map(g => ({ name: g.name, quantity: g.quantity, revenue: g.revenue }));
-    const topProducts = topProductsComputed.map(p => ({ id: p.id, name: p.name, quantity: p.quantity, revenue: p.revenue }));
-    const bottomProducts = bottomProductsComputed.map(p => ({ id: p.id, name: p.name, quantity: p.quantity, revenue: p.revenue }));
+    const salesByProduct = grouped.map((g) => ({
+      name: g.name,
+      quantity: g.quantity,
+      revenue: g.revenue,
+    }));
+    const topProducts = topProductsComputed.map((p) => ({
+      id: p.id,
+      name: p.name,
+      quantity: p.quantity,
+      revenue: p.revenue,
+    }));
+    const bottomProducts = bottomProductsComputed.map((p) => ({
+      id: p.id,
+      name: p.name,
+      quantity: p.quantity,
+      revenue: p.revenue,
+    }));
 
     return {
       userId: requesterId,
@@ -188,6 +257,10 @@ export class ReportsService {
     } else {
       variationPct = ((currentRevenue - prevRevenue) / prevRevenue) * 100;
     }
-    return { revenue: Number(prevRevenue), variationPct: variationPct === null ? null : Number(variationPct.toFixed(2)) };
+    return {
+      revenue: Number(prevRevenue),
+      variationPct:
+        variationPct === null ? null : Number(variationPct.toFixed(2)),
+    };
   }
 }

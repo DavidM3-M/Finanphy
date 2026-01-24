@@ -60,7 +60,7 @@ export class CreateClientOrderItems1758945384493 implements MigrationInterface {
   public async down(queryRunner: QueryRunner): Promise<void> {
     const table = await queryRunner.getTable('client_order_items');
     if (table) {
-      const foreignKeys = table.foreignKeys.filter(fk =>
+      const foreignKeys = table.foreignKeys.filter((fk) =>
         ['orderId', 'productId'].includes(fk.columnNames[0]),
       );
       for (const fk of foreignKeys) {

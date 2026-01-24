@@ -20,13 +20,16 @@ export class CreateExpenseDto {
   category: string;
 
   @IsString()
-  @Length(1,200, {message: 'la descripcion debe llevar entre 1 y 200 caracteras'})
+  @Length(1, 200, {
+    message: 'la descripcion debe llevar entre 1 y 200 caracteras',
+  })
   description: string;
-
 
   @IsOptional()
   @IsString()
-  @Length(3, 100, { message: 'El proveedor debe tener entre 3 y 100 caracteres' })
+  @Length(3, 100, {
+    message: 'El proveedor debe tener entre 3 y 100 caracteres',
+  })
   supplier?: string;
 
   @IsOptional()
@@ -39,6 +42,8 @@ export class CreateExpenseDto {
 
   @IsOptional()
   @IsUUID('4', { message: 'El ID de empresa debe ser un UUID válido' })
-  @Transform(({ value }) => value === null || value === '' ? undefined : value)
+  @Transform(({ value }) =>
+    value === null || value === '' ? undefined : value,
+  )
   companyId?: string;
 }

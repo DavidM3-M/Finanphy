@@ -1,6 +1,13 @@
 // src/finance/expense.entity.ts
 import { Company } from '../../companies/entities/company.entity';
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 
 @Entity()
 export class Expense {
@@ -13,8 +20,8 @@ export class Expense {
   @Column()
   category!: string;
 
-  @Column({nullable:true})
-  description!:string;
+  @Column({ nullable: true })
+  description!: string;
 
   @Column({ nullable: true })
   supplier?: string;
@@ -31,9 +38,7 @@ export class Expense {
   @Column({ type: 'uuid' })
   companyId!: string;
 
-  @ManyToOne(() => Company, company => company.expenses)
+  @ManyToOne(() => Company, (company) => company.expenses)
   @JoinColumn({ name: 'companyId' })
   company!: Company;
-
-
 }

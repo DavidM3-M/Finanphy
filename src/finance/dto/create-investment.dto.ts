@@ -1,5 +1,12 @@
-import { IsNumber,Min, IsString,IsOptional, IsDateString,Length} from "class-validator";
-import { Type } from "class-transformer";
+import {
+  IsNumber,
+  Min,
+  IsString,
+  IsOptional,
+  IsDateString,
+  Length,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateInvestmentDto {
   @Type(() => Number)
@@ -13,11 +20,16 @@ export class CreateInvestmentDto {
 
   @IsOptional()
   @IsString({ message: 'El número de factura debe ser texto' })
-  @Length(0, 20, { message: 'El número de factura no debe exceder 20 caracteres' })
+  @Length(0, 20, {
+    message: 'El número de factura no debe exceder 20 caracteres',
+  })
   invoiceNumber?: string;
 
   @IsOptional()
-  @IsDateString({}, { message: 'La fecha de entrada debe ser una fecha válida' })
+  @IsDateString(
+    {},
+    { message: 'La fecha de entrada debe ser una fecha válida' },
+  )
   entryDate?: string;
 
   @IsOptional()
@@ -25,6 +37,9 @@ export class CreateInvestmentDto {
   exitDate?: string;
 
   @IsOptional()
-  @IsDateString({}, { message: 'La fecha de vencimiento debe ser una fecha válida' })
+  @IsDateString(
+    {},
+    { message: 'La fecha de vencimiento debe ser una fecha válida' },
+  )
   dueDate?: string;
 }

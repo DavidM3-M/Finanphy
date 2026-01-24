@@ -1,11 +1,24 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class TurnNullableColumnsOnCompany1759029740427 implements MigrationInterface {
+export class TurnNullableColumnsOnCompany1759029740427
+  implements MigrationInterface
+{
   private readonly cols = [
-    'legalName','companyType','taxId','taxRegistry','businessPurpose',
-    'companyEmail','companyPhone','fiscalAddress','city','state',
-    'representativeName','representativeDocument','incorporationDate',
-    'createdAt','updatedAt'
+    'legalName',
+    'companyType',
+    'taxId',
+    'taxRegistry',
+    'businessPurpose',
+    'companyEmail',
+    'companyPhone',
+    'fiscalAddress',
+    'city',
+    'state',
+    'representativeName',
+    'representativeDocument',
+    'incorporationDate',
+    'createdAt',
+    'updatedAt',
   ];
 
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -15,7 +28,9 @@ export class TurnNullableColumnsOnCompany1759029740427 implements MigrationInter
         [col],
       );
       if (res.length) {
-        await queryRunner.query(`ALTER TABLE companies ALTER COLUMN "${col}" DROP NOT NULL`);
+        await queryRunner.query(
+          `ALTER TABLE companies ALTER COLUMN "${col}" DROP NOT NULL`,
+        );
       }
     }
   }
@@ -27,7 +42,9 @@ export class TurnNullableColumnsOnCompany1759029740427 implements MigrationInter
         [col],
       );
       if (res.length) {
-        await queryRunner.query(`ALTER TABLE companies ALTER COLUMN "${col}" SET NOT NULL`);
+        await queryRunner.query(
+          `ALTER TABLE companies ALTER COLUMN "${col}" SET NOT NULL`,
+        );
       }
     }
   }

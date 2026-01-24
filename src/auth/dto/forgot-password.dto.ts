@@ -7,7 +7,6 @@ export class ForgotPasswordDto {
   email: string;
 }
 
-
 // dto/reset-password.dto.ts
 export class ResetPasswordDto {
   @IsString()
@@ -19,5 +18,4 @@ export class ResetPasswordDto {
   @IsString()
   @MinLength(8)
   newPassword: string;
-
 }

@@ -14,6 +14,9 @@ import { CompaniesModule } from './companies/companies.module';
 import { ClientOrdersModule } from './client_orders/client-orders.module';
 import { PublicModule } from './public/public.module';
 import { ReportsModule } from './reports/reports.module';
+import { CustomersModule } from './customers/customers.module';
+import { RemindersModule } from './reminders/reminders.module';
+import { CalendarModule } from './calendar/calendar.module';
 
 import { OpenaiModule } from './openai/openai.module';
 import { MailModule } from './mail/mail.module';
@@ -77,6 +80,9 @@ import { MailModule } from './mail/mail.module';
     PublicModule,
     ReportsModule,
     MailModule,
+    CustomersModule,
+    RemindersModule,
+    CalendarModule,
 
     // importa OpenaiModule aquí
     OpenaiModule,

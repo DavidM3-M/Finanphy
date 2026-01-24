@@ -8,4 +8,4 @@ import { ProductsModule } from 'src/products/products.module';
   controllers: [PublicController],
   providers: [PublicService],
 })
-export class PublicModule {} 
+export class PublicModule {}

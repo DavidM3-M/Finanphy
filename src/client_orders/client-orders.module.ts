@@ -10,6 +10,7 @@ import { Company } from 'src/companies/entities/company.entity';
 import { ProductsModule } from 'src/products/products.module';
 import { CompaniesModule } from 'src/companies/companies.module';
 import { Income } from 'src/finance/entities/income.entity';
+import { Customer } from 'src/customers/entities/customer.entity';
 
 @Module({
   imports: [
@@ -19,10 +20,11 @@ import { Income } from 'src/finance/entities/income.entity';
       Product,
       UserEntity,
       Company,
-      Income
+      Income,
+      Customer,
     ]),
     ProductsModule,
-    CompaniesModule
+    CompaniesModule,
   ],
   controllers: [ClientOrdersController],
   providers: [ClientOrdersService],

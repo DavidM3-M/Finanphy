@@ -47,7 +47,8 @@ export class IncomesService {
     });
 
     if (!income) throw new NotFoundException('Ingreso no encontrado');
-    if (!income.company) throw new ForbiddenException('Ingreso sin empresa asociada');
+    if (!income.company)
+      throw new ForbiddenException('Ingreso sin empresa asociada');
     if (income.company.userId !== userId) {
       throw new ForbiddenException('No tienes acceso a este ingreso');
     }
@@ -59,7 +60,11 @@ export class IncomesService {
     let company: Company;
 
     if (dto.companyId) {
-      company = await validateCompanyOwnership(this.companyRepo, dto.companyId, userId);
+      company = await validateCompanyOwnership(
+        this.companyRepo,
+        dto.companyId,
+        userId,
+      );
     } else {
       const companies = await this.companyRepo.find({ where: { userId } });
 

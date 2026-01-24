@@ -7,6 +7,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Company } from '../../companies/entities/company.entity';
+import { ClientOrder } from 'src/client_orders/entities/client-order.entity';
 
 @Entity()
 export class Income {
@@ -19,8 +20,8 @@ export class Income {
   @Column()
   category!: string;
 
-  @Column({nullable:true})
-  description!:string;
+  @Column({ nullable: true })
+  description!: string;
 
   @Column({ nullable: true })
   invoiceNumber?: string;
@@ -29,7 +30,11 @@ export class Income {
   createdAt!: Date;
 
   // ahora timestamptz, nullable y con default CURRENT_TIMESTAMP para compatibilidad
-  @Column({ type: 'timestamp with time zone', nullable: true, default: () => 'CURRENT_TIMESTAMP' })
+  @Column({
+    type: 'timestamp with time zone',
+    nullable: true,
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   entryDate: Date | null;
 
   // dueDate también como timestamptz y nullable
@@ -39,7 +44,14 @@ export class Income {
   @Column({ type: 'uuid' })
   companyId!: string;
 
-  @ManyToOne(() => Company, company => company.incomes, { nullable: false })
+  @Column({ type: 'uuid', nullable: true })
+  orderId?: string | null;
+
+  @ManyToOne(() => Company, (company) => company.incomes, { nullable: false })
   @JoinColumn({ name: 'companyId' })
   company!: Company;
+
+  @ManyToOne(() => ClientOrder, { nullable: true })
+  @JoinColumn({ name: 'orderId' })
+  order?: ClientOrder | null;
 }

@@ -1,6 +1,14 @@
 // src/finance/investment.entity.ts
 import { Company } from '../../companies/entities/company.entity';
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 
 @Entity()
 export class Investment {
@@ -15,7 +23,6 @@ export class Investment {
 
   @Column({ nullable: true })
   invoicenumber?: string;
-
 
   @CreateDateColumn()
   createdAt!: Date;
@@ -35,7 +42,7 @@ export class Investment {
   @Column({ type: 'uuid' })
   companyId!: string;
 
-  @ManyToOne(() => Company, company => company.investments)
+  @ManyToOne(() => Company, (company) => company.investments)
   @JoinColumn({ name: 'companyId' })
   company!: Company;
 }

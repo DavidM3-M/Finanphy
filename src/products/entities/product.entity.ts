@@ -1,9 +1,16 @@
 // src/products/product.entity.ts
 import { Company } from '../../companies/entities/company.entity';
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Index, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  Index,
+  CreateDateColumn,
+} from 'typeorm';
 
 @Index(['sku', 'companyId'], { unique: true })
-
 @Entity()
 export class Product {
   @PrimaryGeneratedColumn('uuid')
@@ -27,7 +34,7 @@ export class Product {
   @Column({ nullable: true })
   imageUrl!: string;
 
-  @Column('decimal', { precision: 12, scale: 2 }) 
+  @Column('decimal', { precision: 12, scale: 2 })
   price!: number;
 
   @Column('decimal', { precision: 12, scale: 2 })
@@ -42,26 +49,25 @@ export class Product {
   @Column({ default: 0 })
   stock!: number;
 
-   @Column({ type: 'uuid' }) 
+  @Column({ type: 'uuid' })
   companyId!: string;
 
   @Column({ type: 'bytea', nullable: true }) // Postgres: bytea
   image_data?: Buffer | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-image_filename: string | null;
+  image_filename: string | null;
 
-@Column({ type: 'varchar', length: 100, nullable: true })
-image_mime: string | null;
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  image_mime: string | null;
 
-@Column({ type: 'bigint', nullable: true })
-image_size: number | null;
+  @Column({ type: 'bigint', nullable: true })
+  image_size: number | null;
 
-@Column({ type: 'timestamptz', nullable: true })
-image_uploaded_at: Date | null;
+  @Column({ type: 'timestamptz', nullable: true })
+  image_uploaded_at: Date | null;
 
-
-  @ManyToOne(() => Company, company => company.products)
+  @ManyToOne(() => Company, (company) => company.products)
   @JoinColumn({ name: 'companyId' })
   company!: Company;
 }

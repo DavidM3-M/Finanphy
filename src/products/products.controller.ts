@@ -82,7 +82,16 @@ export class ProductsController {
     @Body() dto: CreateProductDto,
     @CurrentUser() user: UserEntity,
   ) {
-    console.log('UPLOAD CREATE -> file present:', !!file, 'orig:', file?.originalname, 'size:', file?.size, 'filename:', file?.filename);
+    console.log(
+      'UPLOAD CREATE -> file present:',
+      !!file,
+      'orig:',
+      file?.originalname,
+      'size:',
+      file?.size,
+      'filename:',
+      file?.filename,
+    );
     if (file) {
       const filePath = path.resolve(UPLOADS_DIR, file.filename);
       const buf = fs.readFileSync(filePath);
@@ -108,7 +117,16 @@ export class ProductsController {
     @Body() dto: UpdateProductDto,
     @CurrentUser() user: UserEntity,
   ) {
-    console.log('UPLOAD UPDATE -> file present:', !!file, 'orig:', file?.originalname, 'size:', file?.size, 'filename:', file?.filename);
+    console.log(
+      'UPLOAD UPDATE -> file present:',
+      !!file,
+      'orig:',
+      file?.originalname,
+      'size:',
+      file?.size,
+      'filename:',
+      file?.filename,
+    );
     if (file) {
       const filePath = path.resolve(UPLOADS_DIR, file.filename);
       const buf = fs.readFileSync(filePath);
@@ -137,7 +155,8 @@ export class ProductsController {
   // Endpoint público para catálogo (sin token)
   @Get('public')
   getPublicProducts(@Query('companyId') companyId: string) {
-    if (!companyId) throw new BadRequestException('Falta el parámetro companyId');
+    if (!companyId)
+      throw new BadRequestException('Falta el parámetro companyId');
     return this.productsService.findByCompany(companyId);
   }
 
@@ -146,7 +165,9 @@ export class ProductsController {
   async getImage(@Param('id', ParseUUIDPipe) id: string, @Res() res: Response) {
     const r = await (this.productsService as any).getImageByProductId(id);
     if (!r || !r.data) {
-      return res.status(HttpStatus.NOT_FOUND).json({ message: 'Image not found' });
+      return res
+        .status(HttpStatus.NOT_FOUND)
+        .json({ message: 'Image not found' });
     }
     res.setHeader('Content-Type', r.mimetype || 'application/octet-stream');
     res.setHeader('Content-Length', String(r.size ?? r.data.length));
