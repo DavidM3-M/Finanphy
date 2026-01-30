@@ -41,4 +41,19 @@ export class Expense {
   @ManyToOne(() => Company, (company) => company.expenses)
   @JoinColumn({ name: 'companyId' })
   company!: Company;
+
+  @Column({ type: 'varchar', nullable: true })
+  invoiceUrl?: string | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  invoiceFilename?: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  invoiceMime?: string | null;
+
+  @Column({ type: 'bigint', nullable: true })
+  invoiceSize?: number | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  invoiceUploadedAt?: Date | null;
 }

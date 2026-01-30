@@ -1,46 +1,42 @@
+import { Transform } from 'class-transformer';
 import {
   IsBoolean,
-  IsDateString,
-  IsNotEmpty,
   IsOptional,
   IsString,
+  IsISO8601,
   IsUUID,
-  IsInt,
-  Min,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 
 export class CreateReminderDto {
   @IsString()
-  @IsNotEmpty()
   title!: string;
 
-  @IsString()
-  @IsOptional()
-  note?: string;
-
-  @IsDateString()
+  @IsISO8601()
   remindAt!: string;
 
-  @IsBoolean()
   @IsOptional()
+  @IsString()
+  note?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true' || value === true) return true;
+    if (value === 'false' || value === false) return false;
+    return value;
+  })
+  @IsBoolean()
   allDay?: boolean;
 
-  @IsString()
-  @IsOptional()
-  type?: string;
+  @IsOptional() @IsString() type?: string;
 
-  @IsUUID()
   @IsOptional()
-  companyId?: string;
-
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @IsOptional()
+  @Transform(({ value }) => (value ? Number(value) : undefined))
   incomeId?: number;
 
-  @IsUUID()
+  @IsOptional() @IsString() orderId?: string;
+
   @IsOptional()
-  orderId?: string;
+  @IsUUID('4', { message: 'El ID de empresa debe ser un UUID válido' })
+  @Transform(({ value }) => (value === null || value === '' ? undefined : value))
+  companyId?: string;
 }

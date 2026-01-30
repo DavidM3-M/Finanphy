@@ -134,6 +134,7 @@ export class ProductsService {
       imageUrl: imageUrl,
       price,
       cost,
+      expiresAt: dto.expiresAt ? new Date((dto as any).expiresAt) : null,
       stock,
       company,
       companyId: company.id,
@@ -170,6 +171,12 @@ export class ProductsService {
       product.cost = this.toNumber((dto as any).cost, product.cost);
     if ((dto as any).stock !== undefined)
       product.stock = this.toNumber((dto as any).stock, product.stock);
+
+    if ((dto as any).expiresAt !== undefined) {
+      product.expiresAt = (dto as any).expiresAt
+        ? new Date((dto as any).expiresAt)
+        : null;
+    }
 
     // Si se subió nueva imagen, sobrescribir campos de imagen
     if ((dto as any).image) {

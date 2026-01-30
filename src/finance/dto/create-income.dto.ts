@@ -52,4 +52,11 @@ export class CreateIncomeDto {
     value === null || value === '' ? undefined : value,
   )
   companyId?: string;
+
+  @IsOptional()
+  @IsUUID('4', { message: 'El ID de cliente debe ser un UUID válido' })
+  @Transform(({ value }) =>
+    value === null || value === '' ? undefined : value,
+  )
+  customerId?: string;
 }

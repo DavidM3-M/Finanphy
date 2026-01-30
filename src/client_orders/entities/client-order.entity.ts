@@ -41,6 +41,12 @@ export class ClientOrder {
   @CreateDateColumn()
   createdAt!: Date;
 
+  @Column({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
+  issuedAt!: Date;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  dueAt?: Date | null;
+
   @Column({ unique: true })
   orderCode!: string;
 
@@ -70,4 +76,7 @@ export class ClientOrder {
   })
   @JoinColumn({ name: 'customerId' })
   customer?: Customer | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  description?: string | null;
 }

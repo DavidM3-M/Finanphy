@@ -17,6 +17,8 @@ import { ReportsModule } from './reports/reports.module';
 import { CustomersModule } from './customers/customers.module';
 import { RemindersModule } from './reminders/reminders.module';
 import { CalendarModule } from './calendar/calendar.module';
+import { SuppliersModule } from './suppliers/suppliers.module';
+import { SupplierOrdersModule } from './supplier_orders/supplier-orders.module';
 
 import { OpenaiModule } from './openai/openai.module';
 import { MailModule } from './mail/mail.module';
@@ -81,6 +83,8 @@ import { MailModule } from './mail/mail.module';
     ReportsModule,
     MailModule,
     CustomersModule,
+    SuppliersModule,
+    SupplierOrdersModule,
     RemindersModule,
     CalendarModule,
 

@@ -105,4 +105,22 @@ export class ExpensesService {
     const expense = await this.findOneByUser(id, userId);
     return this.expensesRepo.remove(expense);
   }
+
+  async attachInvoice(id: number, userId: string, file?: Express.Multer.File) {
+    if (!file) throw new BadRequestException('Archivo requerido');
+    const expense = await this.expensesRepo.findOne({
+      where: { id },
+      relations: ['company'],
+    });
+    if (!expense) throw new NotFoundException('Gasto no encontrado');
+    if (expense.company.userId !== userId)
+      throw new ForbiddenException('No tienes acceso a este gasto');
+
+    expense.invoiceFilename = file.filename ?? null;
+    expense.invoiceMime = file.mimetype ?? null;
+    expense.invoiceSize = file.size ?? null;
+    expense.invoiceUploadedAt = new Date();
+    expense.invoiceUrl = `/uploads/${file.filename}`;
+    return this.expensesRepo.save(expense);
+  }
 }

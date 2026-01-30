@@ -15,10 +15,7 @@ export class CalendarController {
   constructor(private readonly calendarService: CalendarService) {}
 
   @Get('events')
-  getEvents(
-    @CurrentUser() user: UserEntity,
-    @Query() query: CalendarQueryDto,
-  ) {
+  getEvents(@CurrentUser() user: UserEntity, @Query() query: CalendarQueryDto) {
     return this.calendarService.getEventsForUser(
       user.id,
       query.from,

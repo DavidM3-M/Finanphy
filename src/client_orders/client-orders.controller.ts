@@ -74,7 +74,12 @@ export class ClientOrdersController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.clientOrdersService.getByCompany(companyId, user.id, page, limit);
+    return this.clientOrdersService.getByCompany(
+      companyId,
+      user.id,
+      page,
+      limit,
+    );
   }
 
   // Usuario ve una orden por ID (sólo propio o de la empresa)

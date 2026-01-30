@@ -30,4 +30,7 @@ export class CreateClientOrderDto {
   @ValidateNested({ each: true })
   @Type(() => OrderItemDto)
   items: OrderItemDto[];
+
+  @IsOptional()
+  description?: string;
 }

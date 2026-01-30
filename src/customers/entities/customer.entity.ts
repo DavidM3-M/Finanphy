@@ -44,6 +44,12 @@ export class Customer {
   @UpdateDateColumn()
   updatedAt!: Date;
 
+  @Column('decimal', { precision: 12, scale: 2, default: 0 })
+  debt!: number;
+
+  @Column('decimal', { precision: 12, scale: 2, default: 0 })
+  credit!: number;
+
   @ManyToOne(() => Company, (company) => company.customers, {
     nullable: false,
   })
