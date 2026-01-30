@@ -5,12 +5,13 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { Income } from '../entities/income.entity';
 import { CreateIncomeDto } from '../dto/create-income.dto';
 import { UpdateIncomeDto } from '../dto/update-income.dto';
 import { Company } from 'src/companies/entities/company.entity';
 import { validateCompanyOwnership } from 'src/common/helpers/validateCompanyOwnership';
+import { Customer } from 'src/customers/entities/customer.entity';
 import {
   buildPaginatedResponse,
   parsePagination,
@@ -24,6 +25,10 @@ export class IncomesService {
 
     @InjectRepository(Company)
     private readonly companyRepo: Repository<Company>,
+
+    @InjectRepository(Customer)
+    private readonly customerRepo: Repository<Customer>,
+    private readonly dataSource: DataSource,
   ) {}
 
   private parseDateInput(v?: string): Date | null {
@@ -97,17 +102,54 @@ export class IncomesService {
     const dueDateForCreate = dueDateParsed ?? undefined;
     const invoiceNumberForCreate = dto.invoiceNumber ?? undefined;
 
-    const income = this.incomesRepo.create({
-      amount: dto.amount,
-      category: dto.category,
-      description: dto.description,
-      invoiceNumber: invoiceNumberForCreate,
-      entryDate: entryDateForCreate,
-      dueDate: dueDateForCreate,
-      company,
-    });
+    // create income and optionally apply to customer balance in a transaction
+    return this.dataSource.transaction(async (manager) => {
+      const inc = manager.create(Income, {
+        amount: dto.amount,
+        category: dto.category,
+        description: dto.description,
+        invoiceNumber: invoiceNumberForCreate,
+        entryDate: entryDateForCreate,
+        dueDate: dueDateForCreate,
+        company,
+        orderId: (dto as any).orderId ?? undefined,
+        customerId: (dto as any).customerId ?? undefined,
+      } as Partial<Income>);
 
-    return this.incomesRepo.save(income);
+      const saved = await manager.save(inc);
+
+      // If linked to a customer, adjust balances
+      if ((dto as any).customerId) {
+        const customerId = (dto as any).customerId;
+        const customer = await manager.findOne(Customer, {
+          where: { id: customerId },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (!customer) throw new NotFoundException('Cliente no encontrado');
+        if (customer.companyId !== company.id)
+          throw new ForbiddenException('Cliente no pertenece a la empresa');
+
+        const amt = Number(dto.amount);
+        const currentDebt = Number(customer.debt ?? 0);
+        const currentCredit = Number(customer.credit ?? 0);
+        let newDebt = currentDebt;
+        let newCredit = currentCredit;
+
+        if (currentDebt >= amt) {
+          newDebt = +(currentDebt - amt).toFixed(2);
+        } else {
+          const remaining = +(amt - currentDebt).toFixed(2);
+          newDebt = 0;
+          newCredit = +(currentCredit + remaining).toFixed(2);
+        }
+
+        customer.debt = newDebt;
+        customer.credit = newCredit;
+        await manager.save(customer);
+      }
+
+      return saved;
+    });
   }
 
   async updateForUser(id: number, dto: UpdateIncomeDto, userId: string) {

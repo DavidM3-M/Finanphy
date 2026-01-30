@@ -2,10 +2,10 @@ import {
   IsString,
   IsNumberString,
   IsOptional,
-  MinLength,
   MaxLength,
   Length,
   IsUUID,
+  IsDateString,
 } from 'class-validator';
 
 export class CreateProductDto {
@@ -44,4 +44,8 @@ export class CreateProductDto {
   @IsOptional()
   @IsUUID('4')
   companyId?: string;
+
+  @IsOptional()
+  @IsDateString()
+  expiresAt?: string;
 }

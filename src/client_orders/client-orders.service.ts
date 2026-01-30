@@ -99,7 +99,10 @@ export class ClientOrdersService {
     }
   }
 
-  private applyInvoiceAttachment(order: ClientOrder, file?: Express.Multer.File) {
+  private applyInvoiceAttachment(
+    order: ClientOrder,
+    file?: Express.Multer.File,
+  ) {
     if (!file) return;
     order.invoiceFilename = file.filename ?? null;
     order.invoiceMime = file.mimetype ?? null;
@@ -188,7 +191,7 @@ export class ClientOrdersService {
   async confirmOrder(orderId: string) {
     const order = await this.orderRepo.findOne({
       where: { id: orderId },
-      relations: ['company', 'items', 'items.product'],
+      relations: ['company', 'items', 'items.product', 'customer'],
     });
     if (!order) throw new NotFoundException('Pedido no encontrado');
 
@@ -201,8 +204,24 @@ export class ClientOrdersService {
     if (stockErrors.length) throw new BadRequestException(stockErrors);
 
     const total = calculateOrderTotal(order.items);
-    order.status = 'en_proceso';
-    await this.orderRepo.save(order);
+
+    // Use transaction to update order status and customer's debt atomically
+    await this.dataSource.transaction(async (manager) => {
+      order.status = 'en_proceso';
+      await manager.save(order);
+
+      if (order.customerId) {
+        const customer = await manager.findOne(Customer, {
+          where: { id: order.customerId },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (customer) {
+          const currentDebt = Number(customer.debt ?? 0);
+          customer.debt = +(currentDebt + total).toFixed(2);
+          await manager.save(customer);
+        }
+      }
+    });
 
     const resumen = formatOrderSummary(order.items);
     return { orderCode: order.orderCode, total, resumen };

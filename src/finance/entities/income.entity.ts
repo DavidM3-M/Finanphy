@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { Company } from '../../companies/entities/company.entity';
 import { ClientOrder } from 'src/client_orders/entities/client-order.entity';
+import { Customer } from 'src/customers/entities/customer.entity';
 
 @Entity()
 export class Income {
@@ -47,6 +48,9 @@ export class Income {
   @Column({ type: 'uuid', nullable: true })
   orderId?: string | null;
 
+  @Column({ type: 'uuid', nullable: true })
+  customerId?: string | null;
+
   @ManyToOne(() => Company, (company) => company.incomes, { nullable: false })
   @JoinColumn({ name: 'companyId' })
   company!: Company;
@@ -54,4 +58,8 @@ export class Income {
   @ManyToOne(() => ClientOrder, { nullable: true })
   @JoinColumn({ name: 'orderId' })
   order?: ClientOrder | null;
+
+  @ManyToOne(() => Customer, { nullable: true })
+  @JoinColumn({ name: 'customerId' })
+  customer?: Customer | null;
 }

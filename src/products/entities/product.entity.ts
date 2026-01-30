@@ -52,6 +52,9 @@ export class Product {
   @Column({ type: 'uuid' })
   companyId!: string;
 
+  @Column({ type: 'timestamptz', nullable: true })
+  expiresAt?: Date | null;
+
   @Column({ type: 'bytea', nullable: true }) // Postgres: bytea
   image_data?: Buffer | null;
 

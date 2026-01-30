@@ -29,6 +29,15 @@ export class CustomersService {
       userId,
     );
 
+    const debt = dto.debt !== undefined ? Number(dto.debt) : 0;
+    const credit = dto.credit !== undefined ? Number(dto.credit) : 0;
+    if (Number.isNaN(debt) || debt < 0) {
+      throw new BadRequestException('debt inválido');
+    }
+    if (Number.isNaN(credit) || credit < 0) {
+      throw new BadRequestException('credit inválido');
+    }
+
     const customer = this.customersRepo.create({
       name: dto.name,
       email: dto.email,
@@ -37,6 +46,8 @@ export class CustomersService {
       address: dto.address,
       notes: dto.notes,
       companyId: company.id,
+      debt,
+      credit,
     });
 
     return this.customersRepo.save(customer);
@@ -93,6 +104,19 @@ export class CustomersService {
     customer.documentId = dto.documentId ?? customer.documentId;
     customer.address = dto.address ?? customer.address;
     customer.notes = dto.notes ?? customer.notes;
+    if (dto.debt !== undefined) {
+      const d = dto.debt === null ? null : Number(dto.debt);
+      if (d !== null && (Number.isNaN(d) || d < 0)) {
+        throw new BadRequestException('debt inválido');
+      }
+      customer.debt = d ?? 0;
+    }
+    if (dto.credit !== undefined) {
+      const c = dto.credit === null ? null : Number(dto.credit);
+      if (c !== null && (Number.isNaN(c) || c < 0))
+        throw new BadRequestException('credit inválido');
+      customer.credit = c ?? 0;
+    }
 
     return this.customersRepo.save(customer);
   }

@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner, TableColumn } from 'typeorm';
 
-export class AddProductImageColumns1769222000000
-  implements MigrationInterface
-{
+export class AddProductImageColumns1769222000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     if (!(await queryRunner.hasColumn('product', 'image_data'))) {
       await queryRunner.addColumn(
