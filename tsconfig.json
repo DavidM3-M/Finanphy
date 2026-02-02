@@ -12,6 +12,7 @@
     "allowSyntheticDefaultImports": true,
     "sourceMap": true,
     "outDir": "./dist",
+    "resolveJsonModule": true,
     "baseUrl": "./",
     "paths": {
       "*": ["*"],
