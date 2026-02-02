@@ -25,8 +25,8 @@ export function parsePagination(
   options: PaginationOptions = {},
 ): PaginationParams {
   const defaultPage = options.defaultPage ?? 1;
-  const defaultLimit = options.defaultLimit ?? 20;
-  const maxLimit = options.maxLimit ?? 100;
+  const defaultLimit = options.defaultLimit ?? 50;
+  const maxLimit = options.maxLimit ?? 1000;
 
   const toInt = (value: string | number | undefined, fallback: number) => {
     if (value === undefined || value === null || value === '') return fallback;
