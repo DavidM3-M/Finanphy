@@ -369,6 +369,16 @@ export class ClientOrdersService {
 
     try {
       await this.restoreStockForOrder(queryRunner, order.items);
+
+      if (order.invoiceFilename) {
+        const fileOnDisk = path.resolve(UPLOADS_DIR, order.invoiceFilename);
+        try {
+          if (fs.existsSync(fileOnDisk)) fs.unlinkSync(fileOnDisk);
+        } catch {
+          // no-op: we don't want file removal errors to block order deletion
+        }
+      }
+
       await queryRunner.manager.remove(ClientOrder, order);
       await queryRunner.commitTransaction();
       return {
@@ -425,7 +435,7 @@ export class ClientOrdersService {
       const fileOnDisk = path.resolve(UPLOADS_DIR, order.invoiceFilename);
       try {
         if (fs.existsSync(fileOnDisk)) fs.unlinkSync(fileOnDisk);
-      } catch (err) {
+      } catch {
         // no-op, keep DB update even if file removal fails
       }
     }

@@ -25,6 +25,9 @@ export class Product {
   @CreateDateColumn()
   createdAt!: Date;
 
+  @Column({ type: 'timestamptz', nullable: true })
+  entryDate?: Date | null;
+
   @Column({ nullable: true })
   description!: string;
 

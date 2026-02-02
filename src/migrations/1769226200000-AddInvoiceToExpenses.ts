@@ -25,12 +25,8 @@ export class AddInvoiceToExpenses1769226200000 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "expense" DROP COLUMN "invoiceUploadedAt"`,
     );
-    await queryRunner.query(
-      `ALTER TABLE "expense" DROP COLUMN "invoiceSize"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "expense" DROP COLUMN "invoiceMime"`,
-    );
+    await queryRunner.query(`ALTER TABLE "expense" DROP COLUMN "invoiceSize"`);
+    await queryRunner.query(`ALTER TABLE "expense" DROP COLUMN "invoiceMime"`);
     await queryRunner.query(
       `ALTER TABLE "expense" DROP COLUMN "invoiceFilename"`,
     );
