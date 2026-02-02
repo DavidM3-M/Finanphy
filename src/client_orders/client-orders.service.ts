@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   Injectable,
   BadRequestException,
@@ -310,13 +311,16 @@ export class ClientOrdersService {
       await queryRunner.connect();
       await queryRunner.startTransaction();
 
+      // declare incomePayload in outer scope so the catch block can reference it
+      let incomePayload: Partial<Income> = {} as Partial<Income>;
+
       try {
         order.status = 'enviado';
         await queryRunner.manager.save(order);
 
         // crear ingreso: mapear valores null -> undefined para TypeORM DeepPartial
         const now = new Date();
-        const incomePayload: Partial<Income> = {
+        incomePayload = {
           amount: total,
           category: 'venta',
           invoiceNumber: order.orderCode ?? undefined,
@@ -359,7 +363,41 @@ export class ClientOrdersService {
 
         return updated ?? order;
       } catch (err) {
+        // Handle unique constraint violation for invoiceNumber + companyId
+        // If another process inserted the Income concurrently, try to link it
+        try {
+          // Postgres unique violation code
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          const pgCode = err?.driverError?.code ?? err?.code ?? null;
+          if (pgCode === '23505' && incomePayload.invoiceNumber) {
+            const existing = await queryRunner.manager.findOne(Income, {
+              where: {
+                invoiceNumber: incomePayload.invoiceNumber,
+                companyId: order.company.id,
+              },
+            });
+
+            if (existing) {
+              if (!existing.orderId) {
+                existing.orderId = order.id;
+                await queryRunner.manager.save(existing);
+              }
+              await queryRunner.commitTransaction();
+              const updated = await this.orderRepo.findOne({
+                where: { id: order.id },
+                relations: ['company', 'items', 'items.product', 'customer'],
+              });
+              return updated ?? order;
+            }
+          }
+        } catch (inner) {
+          // log inner error but fallthrough to rollback + rethrow original
+          // eslint-disable-next-line no-console
+          console.warn('Error handling duplicate income', inner);
+        }
+
         await queryRunner.rollbackTransaction();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         throw err;
       } finally {
         await queryRunner.release();
