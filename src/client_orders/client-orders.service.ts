@@ -327,8 +327,28 @@ export class ClientOrdersService {
           order,
         };
 
-        const income = this.incomesRepo.create(incomePayload as any);
-        await queryRunner.manager.save(income);
+        // Avoid creating duplicate Income records for the same invoice + company
+        let existingIncome: Income | null = null;
+        if (incomePayload.invoiceNumber) {
+          existingIncome = await queryRunner.manager.findOne(Income, {
+            where: {
+              invoiceNumber: incomePayload.invoiceNumber,
+              companyId: order.company.id,
+            },
+          });
+        }
+
+        if (existingIncome) {
+          // If existing income has no linked order, attach this order id
+          if (!existingIncome.orderId) {
+            existingIncome.orderId = order.id;
+            await queryRunner.manager.save(existingIncome);
+          }
+        } else {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          const income = this.incomesRepo.create(incomePayload as any);
+          await queryRunner.manager.save(income);
+        }
 
         await queryRunner.commitTransaction();
 
