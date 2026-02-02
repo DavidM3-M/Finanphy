@@ -21,7 +21,8 @@ import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { Response } from 'express';
-import { ProductsService } from './products.service';
+import { ProductsService, ImagePayload } from './products.service';
+import { CheckStockDto } from './dto/check-stock.dto';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { AuthGuard } from '@nestjs/passport';
@@ -42,9 +43,14 @@ const MULTER_DISK = {
     },
   }),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
-  fileFilter: (_req: any, file: Express.Multer.File, cb: any) => {
+  fileFilter: (
+    _req: unknown,
+    file: Express.Multer.File,
+    cb: (error: Error | null, acceptFile: boolean) => void,
+  ) => {
     if (!/^image\/(jpeg|png|webp)$/i.test(file.mimetype)) {
-      return cb(new Error('Tipo de archivo no permitido'), false);
+      cb(new Error('Tipo de archivo no permitido'), false);
+      return;
     }
     cb(null, true);
   },
@@ -55,6 +61,12 @@ const MULTER_DISK = {
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
+
+  // Comprobar disponibilidad de stock para varios productos
+  @Post('check-stock')
+  async checkStock(@Body() dto: CheckStockDto) {
+    return this.productsService.checkStock(dto.items ?? []);
+  }
 
   // Lista privada del vendedor
   @Roles(Role.User)
@@ -99,13 +111,16 @@ export class ProductsController {
     if (file) {
       const filePath = path.resolve(UPLOADS_DIR, file.filename);
       const buf = fs.readFileSync(filePath);
-      (dto as any).image = {
+      (
+        dto as CreateProductDto & { image?: ImagePayload; imageUrl?: string }
+      ).image = {
         buffer: buf,
         filename: file.filename,
         mimetype: file.mimetype,
         size: buf.length,
       };
-      (dto as any).imageUrl = `/uploads/${file.filename}`;
+      (dto as CreateProductDto & { imageUrl?: string }).imageUrl =
+        `/uploads/${file.filename}`;
     }
 
     return this.productsService.createForUser(dto, user.id);
@@ -134,13 +149,16 @@ export class ProductsController {
     if (file) {
       const filePath = path.resolve(UPLOADS_DIR, file.filename);
       const buf = fs.readFileSync(filePath);
-      (dto as any).image = {
+      (
+        dto as UpdateProductDto & { image?: ImagePayload; imageUrl?: string }
+      ).image = {
         buffer: buf,
         filename: file.filename,
         mimetype: file.mimetype,
         size: buf.length,
       };
-      (dto as any).imageUrl = `/uploads/${file.filename}`;
+      (dto as UpdateProductDto & { imageUrl?: string }).imageUrl =
+        `/uploads/${file.filename}`;
     }
 
     return this.productsService.updateForUser(id, dto, user.id);
@@ -162,16 +180,46 @@ export class ProductsController {
     @Query('companyId') companyId: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('q') q?: string,
+    @Query('category') category?: string,
+    @Query('expiresBefore') expiresBefore?: string,
+    @Query('expiresAfter') expiresAfter?: string,
   ) {
     if (!companyId)
       throw new BadRequestException('Falta el parámetro companyId');
-    return this.productsService.findByCompany(companyId, page, limit);
+    return this.productsService.findByCompany(companyId, page, limit, {
+      q: q ?? undefined,
+      category: category ?? undefined,
+      expiresBefore: expiresBefore ?? undefined,
+      expiresAfter: expiresAfter ?? undefined,
+    });
+  }
+
+  // Valor total del inventario. Si se pasa `companyId`, devuelve para esa compañía
+  // Usuarios normales deben especificar `companyId` (se valida ownership).
+  // Admins pueden omitir `companyId` para obtener total global.
+  @Get('inventory/total')
+  async getInventoryTotal(
+    @Query('companyId') companyId: string | undefined,
+    @CurrentUser() user: UserEntity,
+  ) {
+    const isAdmin = user?.role === Role.Admin;
+    return this.productsService.getTotalInventoryValue({
+      companyId: companyId ?? undefined,
+      userId: user?.id,
+      isAdmin,
+    });
   }
 
   // Endpoint que devuelve la imagen binaria guardada en BD
   @Get(':id/image')
   async getImage(@Param('id', ParseUUIDPipe) id: string, @Res() res: Response) {
-    const r = await (this.productsService as any).getImageByProductId(id);
+    type ImageResult = {
+      data: Buffer;
+      mimetype?: string;
+      size?: number;
+    } | null;
+    const r: ImageResult = await this.productsService.getImageByProductId(id);
     if (!r || !r.data) {
       return res
         .status(HttpStatus.NOT_FOUND)

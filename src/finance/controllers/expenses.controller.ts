@@ -79,8 +79,6 @@ export class ExpensesController {
     return this.expensesService.createForUser(dto, user.id);
   }
 
-  
-
   @Post(':id/invoice')
   @UseInterceptors(FileInterceptor('invoice', INVOICE_UPLOAD))
   uploadInvoice(

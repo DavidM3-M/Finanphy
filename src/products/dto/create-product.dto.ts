@@ -48,4 +48,8 @@ export class CreateProductDto {
   @IsOptional()
   @IsDateString()
   expiresAt?: string;
+
+  @IsOptional()
+  @IsDateString()
+  entryDate?: string;
 }

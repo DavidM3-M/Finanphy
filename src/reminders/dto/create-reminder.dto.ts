@@ -37,6 +37,8 @@ export class CreateReminderDto {
 
   @IsOptional()
   @IsUUID('4', { message: 'El ID de empresa debe ser un UUID válido' })
-  @Transform(({ value }) => (value === null || value === '' ? undefined : value))
+  @Transform(({ value }) =>
+    value === null || value === '' ? undefined : value,
+  )
   companyId?: string;
 }

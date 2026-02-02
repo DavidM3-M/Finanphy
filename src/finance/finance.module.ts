@@ -15,7 +15,9 @@ import { ExpensesService } from './services/expenses.service';
 import { InvestmentsService } from './services/investments.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Income, Expense, Investment, Company, Customer])],
+  imports: [
+    TypeOrmModule.forFeature([Income, Expense, Investment, Company, Customer]),
+  ],
   controllers: [IncomesController, ExpensesController, InvestmentsController],
   providers: [IncomesService, ExpensesService, InvestmentsService],
 })

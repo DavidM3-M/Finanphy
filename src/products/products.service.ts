@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DeepPartial, Repository, DataSource, QueryRunner } from 'typeorm';
+import { DeepPartial, Repository, DataSource, QueryRunner, In } from 'typeorm';
 import { Product } from '../products/entities/product.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -15,6 +15,13 @@ import {
   buildPaginatedResponse,
   parsePagination,
 } from 'src/common/helpers/pagination';
+
+export type ImagePayload = {
+  buffer: Buffer;
+  filename?: string | null;
+  mimetype?: string | null;
+  size?: number | null;
+};
 
 @Injectable()
 export class ProductsService {
@@ -42,6 +49,34 @@ export class ProductsService {
       .getManyAndCount();
 
     return buildPaginatedResponse(data, total, p, l);
+  }
+
+  // Verificar stock para varios productos: devuelve disponibilidad por item
+  async checkStock(items: Array<{ productId: string; quantity: number }>) {
+    if (!Array.isArray(items) || items.length === 0) return [];
+
+    const ids = items.map((i) => i.productId);
+    const products = await this.productsRepo.find({ where: { id: In(ids) } });
+
+    return items.map((it) => {
+      const prod = products.find((p) => String(p.id) === String(it.productId));
+      if (!prod) {
+        return {
+          productId: it.productId,
+          requested: Number(it.quantity ?? 0),
+          available: null,
+          sufficient: false,
+        };
+      }
+      const available = Number(prod.stock ?? 0);
+      const requested = Number(it.quantity ?? 0);
+      return {
+        productId: it.productId,
+        requested,
+        available,
+        sufficient: available >= requested,
+      };
+    });
   }
 
   // Cliente: ver catálogo público de una compañía
@@ -78,19 +113,23 @@ export class ProductsService {
   }
 
   // Helpers para normalizar tipos
-  private toNumber(value: any, fallback = 0): number {
+  private toNumber(value: unknown, fallback = 0): number {
     if (value === undefined || value === null || value === '') return fallback;
     return typeof value === 'number' ? value : Number(value);
   }
 
   // Vendedor: crear producto en una compañía
-  async createForUser(dto: CreateProductDto, userId: string) {
+  // Vendedor: crear producto en una compañía
+  async createForUser(
+    dto: CreateProductDto & Partial<{ image: ImagePayload }>,
+    userId: string,
+  ) {
     let company: Company;
 
-    if ((dto as any).companyId) {
+    if (dto.companyId) {
       company = await validateCompanyOwnership(
         this.companyRepo,
-        (dto as any).companyId,
+        dto.companyId,
         userId,
       );
     } else {
@@ -118,13 +157,12 @@ export class ProductsService {
     }
 
     // Normalizar valores
-    const price = this.toNumber((dto as any).price, 0);
-    const cost = this.toNumber((dto as any).cost, 0);
-    const stock = this.toNumber((dto as any).stock, 0);
+    const price = this.toNumber(dto.price, 0);
+    const cost = this.toNumber(dto.cost, 0);
+    const stock = this.toNumber(dto.stock, 0);
 
     // imageUrl puede ser string | null; si viene undefined -> mantener null
-    const imageUrl =
-      (dto as any).imageUrl === undefined ? null : (dto as any).imageUrl;
+    const imageUrl = dto.imageUrl === undefined ? null : dto.imageUrl;
 
     const product = this.productsRepo.create({
       name: dto.name,
@@ -134,27 +172,32 @@ export class ProductsService {
       imageUrl: imageUrl,
       price,
       cost,
-      expiresAt: dto.expiresAt ? new Date((dto as any).expiresAt) : null,
+      expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : null,
+      entryDate: dto.entryDate ? new Date(dto.entryDate) : null,
       stock,
       company,
       companyId: company.id,
     } as DeepPartial<Product>);
 
     // Guardar imagen si viene en DTO (dto.image expected: { buffer, filename, mimetype, size })
-    if ((dto as any).image) {
-      const img = (dto as any).image;
-      (product as any).image_data = Buffer.from(img.buffer);
-      (product as any).image_filename = img.filename ?? null;
-      (product as any).image_mime = img.mimetype ?? null;
-      (product as any).image_size = img.size ?? null;
-      (product as any).image_uploaded_at = new Date();
+    if (dto.image) {
+      const img = dto.image;
+      product.image_data = Buffer.from(img.buffer);
+      product.image_filename = img.filename ?? null;
+      product.image_mime = img.mimetype ?? null;
+      product.image_size = img.size ?? null;
+      product.image_uploaded_at = new Date();
     }
 
     return this.productsRepo.save(product);
   }
 
   // Vendedor: actualizar producto
-  async updateForUser(id: string, dto: UpdateProductDto, userId: string) {
+  async updateForUser(
+    id: string,
+    dto: UpdateProductDto & Partial<{ image: ImagePayload }>,
+    userId: string,
+  ) {
     const product = await this.findOneByUser(id, userId);
 
     // Solo actualizar campos que vienen en dto (incluso si vienen como null)
@@ -163,24 +206,25 @@ export class ProductsService {
     if (dto.description !== undefined)
       product.description = dto.description ?? null;
     if (dto.category !== undefined) product.category = dto.category ?? null;
-    if ((dto as any).imageUrl !== undefined)
-      product.imageUrl = (dto as any).imageUrl ?? null;
-    if ((dto as any).price !== undefined)
-      product.price = this.toNumber((dto as any).price, product.price);
-    if ((dto as any).cost !== undefined)
-      product.cost = this.toNumber((dto as any).cost, product.cost);
-    if ((dto as any).stock !== undefined)
-      product.stock = this.toNumber((dto as any).stock, product.stock);
+    if (dto.imageUrl !== undefined) product.imageUrl = dto.imageUrl ?? null;
+    if (dto.price !== undefined)
+      product.price = this.toNumber(dto.price, product.price);
+    if (dto.cost !== undefined)
+      product.cost = this.toNumber(dto.cost, product.cost);
+    if (dto.stock !== undefined)
+      product.stock = this.toNumber(dto.stock, product.stock);
 
-    if ((dto as any).expiresAt !== undefined) {
-      product.expiresAt = (dto as any).expiresAt
-        ? new Date((dto as any).expiresAt)
-        : null;
+    if (dto.expiresAt !== undefined) {
+      product.expiresAt = dto.expiresAt ? new Date(dto.expiresAt) : null;
+    }
+
+    if (dto.entryDate !== undefined) {
+      product.entryDate = dto.entryDate ? new Date(dto.entryDate) : null;
     }
 
     // Si se subió nueva imagen, sobrescribir campos de imagen
-    if ((dto as any).image) {
-      const img = (dto as any).image;
+    if (dto.image) {
+      const img = dto.image;
       product.image_data = Buffer.from(img.buffer);
       product.image_filename = img.filename ?? product.image_filename;
       product.image_mime = img.mimetype ?? product.image_mime;
@@ -198,14 +242,67 @@ export class ProductsService {
   }
 
   // Público: listar por companyId (nombre compatible con controller)
-  async findByCompany(companyId: string, page?: string, limit?: string) {
+  async findByCompany(
+    companyId: string,
+    page?: string,
+    limit?: string,
+    filters?: {
+      q?: string | undefined;
+      category?: string | undefined;
+      expiresBefore?: string | undefined; // ISO date
+      expiresAfter?: string | undefined; // ISO date
+    },
+  ) {
     const { page: p, limit: l, offset } = parsePagination(page, limit);
-    const [data, total] = await this.productsRepo.findAndCount({
-      where: { companyId },
-      order: { name: 'ASC' },
-      skip: offset,
-      take: l,
-    });
+
+    const qb = this.productsRepo
+      .createQueryBuilder('product')
+      .where('product.companyId = :companyId', { companyId })
+      .orderBy('product.name', 'ASC')
+      .skip(offset)
+      .take(l);
+
+    if (filters) {
+      if (filters.category) {
+        qb.andWhere('product.category = :category', {
+          category: String(filters.category),
+        });
+      }
+
+      if (filters.q) {
+        const q = `%${String(filters.q).trim()}%`;
+        qb.andWhere(
+          '(product.name ILIKE :q OR product.description ILIKE :q OR product.sku ILIKE :q)',
+          { q },
+        );
+      }
+
+      if (filters.expiresBefore) {
+        const d = new Date(filters.expiresBefore);
+        if (!isNaN(d.getTime())) {
+          qb.andWhere(
+            'product.expiresAt IS NOT NULL AND product.expiresAt <= :expBefore',
+            {
+              expBefore: d.toISOString(),
+            },
+          );
+        }
+      }
+
+      if (filters.expiresAfter) {
+        const d = new Date(filters.expiresAfter);
+        if (!isNaN(d.getTime())) {
+          qb.andWhere(
+            'product.expiresAt IS NOT NULL AND product.expiresAt >= :expAfter',
+            {
+              expAfter: d.toISOString(),
+            },
+          );
+        }
+      }
+    }
+
+    const [data, total] = await qb.getManyAndCount();
 
     return buildPaginatedResponse(data, total, p, l);
   }
@@ -216,15 +313,20 @@ export class ProductsService {
   ): Promise<{ data: Buffer; mimetype?: string; size?: number } | null> {
     const product = await this.productsRepo.findOne({
       where: { id: productId },
-      select: ['id', 'image_data', 'image_mime', 'image_size'] as any,
+      select: [
+        'id',
+        'image_data',
+        'image_mime',
+        'image_size',
+      ] as (keyof Product)[],
     });
 
     if (!product || !product.image_data) return null;
 
     return {
-      data: product.image_data as Buffer,
+      data: product.image_data,
       mimetype: product.image_mime ?? undefined,
-      size: product.image_size ?? (product.image_data as Buffer).length,
+      size: product.image_size ?? product.image_data.length,
     };
   }
 
@@ -292,15 +394,70 @@ export class ProductsService {
       if (needsOwnRunner && runner) {
         try {
           await runner.rollbackTransaction();
-        } catch (_) {}
+        } catch {
+          /* empty */
+        }
       }
       throw err;
     } finally {
       if (needsOwnRunner && runner) {
         try {
           await runner.release();
-        } catch (_) {}
+        } catch {
+          /* empty */
+        }
       }
     }
+  }
+
+  // Obtener valor total del inventario.
+  // Si se pasa `companyId`, devuelve el total para esa compañía (verifica ownership si se provee `userId` y no es admin).
+  // Si no se pasa `companyId`, sólo los admins pueden solicitar el total global.
+  async getTotalInventoryValue(opts?: {
+    companyId?: string;
+    userId?: string;
+    isAdmin?: boolean;
+  }) {
+    const companyId = opts?.companyId;
+
+    if (companyId) {
+      // si viene userId y no es admin -> validar ownership
+      if (opts?.userId && !opts.isAdmin) {
+        await validateCompanyOwnership(
+          this.companyRepo,
+          companyId,
+          opts.userId,
+        );
+      } else {
+        const company = await this.companyRepo.findOne({
+          where: { id: companyId },
+        });
+        if (!company) throw new NotFoundException('Compañía no encontrada');
+      }
+    } else {
+      // para total global, requerir admin cuando se llama con userId presente
+      if (opts?.userId && !opts.isAdmin) {
+        throw new ForbiddenException('Debes especificar companyId');
+      }
+    }
+
+    const qb = this.productsRepo
+      .createQueryBuilder('product')
+      .select(['product.price', 'product.stock']);
+
+    if (companyId) qb.where('product.companyId = :companyId', { companyId });
+
+    const products = await qb.getMany();
+
+    const total = products.reduce((acc, p) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const price = this.toNumber((p as any).price ?? 0, 0);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const stock = this.toNumber((p as any).stock ?? 0, 0);
+      return acc + price * stock;
+    }, 0);
+
+    // devolver con 2 decimales
+    return { total: Number(total.toFixed(2)) };
   }
 }
