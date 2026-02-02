@@ -116,6 +116,7 @@ export class ClientOrdersService {
     rawItems: OrderItemInput[],
     userId: string,
     customerId?: string,
+    description?: string | null,
   ) {
     const company = await this.companyRepo.findOne({
       where: { id: companyId },
@@ -165,6 +166,7 @@ export class ClientOrdersService {
       userId,
       customerId: customer?.id ?? null,
       customer: customer ?? undefined,
+      description: description === undefined ? null : description,
     });
 
     const queryRunner = this.dataSource.createQueryRunner();
