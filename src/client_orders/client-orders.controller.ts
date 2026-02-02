@@ -61,8 +61,9 @@ export class ClientOrdersController {
     return this.clientOrdersService.create(
       dto.companyId,
       dto.items,
-      user.id, // ← aquí
+      user.id,
       dto.customerId,
+      dto.description?.trim() ?? null,
     );
   }
 
