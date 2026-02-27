@@ -31,23 +31,36 @@ export class CustomerPaymentsService {
     private readonly dataSource: DataSource,
   ) {}
 
-
   async listForUser(customerId: string, userId: string) {
-    // verify ownership: customer -> company -> user
-    const customer = await this.customersRepo.findOne({ where: { id: customerId } });
+    const customer = await this.customersRepo.findOne({
+      where: { id: customerId },
+    });
     if (!customer) throw new NotFoundException('Cliente no encontrado');
-    const company = await this.companyRepo.findOne({ where: { id: customer.companyId } });
-    if (!company) throw new NotFoundException('Empresa no encontrada');
-    if (company.userId !== userId) throw new ForbiddenException('No tienes acceso a este cliente');
 
-    return this.paymentsRepo.find({ where: { customerId }, order: { paidAt: 'DESC' } });
+    const company = await this.companyRepo.findOne({
+      where: { id: customer.companyId },
+    });
+    if (!company) throw new NotFoundException('Empresa no encontrada');
+    if (company.userId !== userId)
+      throw new ForbiddenException('No tienes acceso a este cliente');
+
+    return this.paymentsRepo.find({
+      where: { customerId },
+      order: { paidAt: 'DESC' },
+    });
   }
 
   async createForUser(
     customerId: string,
     userId: string,
-    payload: { amount: number; paidAt?: string; paymentMethod?: string; note?: string; orderId?: string },
-    file?: Express.Multer.File | undefined,
+    payload: {
+      amount: number;
+      paidAt?: string;
+      paymentMethod?: string;
+      note?: string;
+      orderId?: string;
+    },
+    file?: Express.Multer.File,
   ) {
     if (!Number.isFinite(payload.amount) || payload.amount <= 0)
       throw new BadRequestException('amount inválido');
@@ -65,38 +78,48 @@ export class CustomerPaymentsService {
       });
       if (!customer) throw new NotFoundException('Cliente no encontrado');
 
-      const company = await manager.findOne(Company, { where: { id: customer.companyId } });
+      const company = await manager.findOne(Company, {
+        where: { id: customer.companyId },
+      });
       if (!company) throw new NotFoundException('Empresa no encontrada');
-      if (company.userId !== userId) throw new ForbiddenException('No tienes acceso a este cliente');
+      if (company.userId !== userId)
+        throw new ForbiddenException('No tienes acceso a este cliente');
 
       const amt = Number(payload.amount);
       const currentDebt = Number(customer.debt ?? 0);
-      const currentCredit = Number(customer.credit ?? 0);
 
-      // Validation: do not allow paying more than customer's current debt
-      if (amt > currentDebt) {
-        throw new BadRequestException('amount supera la deuda actual del cliente');
-      }
+      if (amt > currentDebt)
+        throw new BadRequestException(
+          'amount supera la deuda actual del cliente',
+        );
 
-      let balanceAfter = currentDebt - amt;
-
-      // If orderId provided, validate order belongs to customer and amount not exceed order remaining
       let linkedOrder: ClientOrder | null = null;
       if (payload.orderId) {
-        linkedOrder = await manager.findOne(ClientOrder, { where: { id: payload.orderId }, relations: ['items'] });
+        linkedOrder = await manager.findOne(ClientOrder, {
+          where: { id: payload.orderId },
+          relations: ['items'],
+        });
         if (!linkedOrder) throw new NotFoundException('Orden no encontrada');
-        if (linkedOrder.customerId !== customer.id) throw new BadRequestException('orderId no pertenece a este cliente');
+        if (linkedOrder.customerId !== customer.id)
+          throw new BadRequestException('orderId no pertenece a este cliente');
 
         const orderTotal = calculateOrderTotal(linkedOrder.items);
-        const existingPayments = await manager.find(CustomerPayment, { where: { orderId: linkedOrder.id } });
-        const paidSum = existingPayments.reduce((s, p) => s + Number(p.amount ?? 0), 0);
+        const existingPayments = await manager.find(CustomerPayment, {
+          where: { orderId: linkedOrder.id },
+        });
+        const paidSum = existingPayments.reduce(
+          (s, p) => s + Number(p.amount ?? 0),
+          0,
+        );
         const remainingOrder = +(orderTotal - paidSum).toFixed(2);
-        if (amt > remainingOrder) throw new BadRequestException('amount supera el saldo pendiente de la orden');
+        if (amt > remainingOrder)
+          throw new BadRequestException(
+            'amount supera el saldo pendiente de la orden',
+          );
       }
 
-      // Apply payment: reduce customer's debt (we ensured amt <= currentDebt)
       customer.debt = +(currentDebt - amt).toFixed(2);
-      balanceAfter = Number(customer.debt);
+      const balanceAfter = Number(customer.debt);
       await manager.save(customer);
 
       const paymentData: Partial<CustomerPayment> = {
@@ -120,41 +143,54 @@ export class CustomerPaymentsService {
       const payment = manager.create(CustomerPayment, paymentData as any);
       const saved = await manager.save(payment);
 
-      // Create Income record for this payment (abono)
-      try {
-        const incomePayload: Partial<Income> = {
-          amount: amt,
-          category: 'abono',
-          invoiceNumber: linkedOrder?.orderCode ?? undefined,
-          entryDate: paymentData.paidAt ?? new Date(),
-          dueDate: undefined,
-          company: company,
-          orderId: linkedOrder?.id ?? null,
-          customerId: customer.id,
-        };
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      // Crear Income para el abono evitando duplicados por invoiceNumber + companyId
+      const incomePayload: Partial<Income> = {
+        amount: amt,
+        category: 'abono',
+        invoiceNumber: linkedOrder?.orderCode ?? undefined,
+        entryDate: paymentData.paidAt ?? new Date(),
+        dueDate: undefined,
+        company,
+        orderId: linkedOrder?.id ?? null,
+        customerId: customer.id,
+      };
+
+      if (incomePayload.invoiceNumber) {
+        const existingIncome = await manager.findOne(Income, {
+          where: {
+            invoiceNumber: incomePayload.invoiceNumber,
+            companyId: company.id,
+          },
+        });
+
+        if (existingIncome) {
+          if (!existingIncome.orderId && linkedOrder?.id) {
+            existingIncome.orderId = linkedOrder.id;
+            await manager.save(existingIncome);
+          }
+        } else {
+          await manager.save(Income, incomePayload as any);
+        }
+      } else {
         await manager.save(Income, incomePayload as any);
-      } catch (e) {
-        // non-fatal: log and continue
-        // eslint-disable-next-line no-console
-        console.warn('No se pudo crear Income para el abono', e);
       }
 
-      // If payment linked to an order, update that order's paidAmount and paymentStatus
+      // Actualizar paidAmount y paymentStatus de la orden vinculada
       if (linkedOrder) {
         const orderTotal = calculateOrderTotal(linkedOrder.items);
-        // sum payments again to include the one we just saved
-        const paymentsForOrder = await manager.find(CustomerPayment, { where: { orderId: linkedOrder.id } });
-        const paidSum = paymentsForOrder.reduce((s, p) => s + Number(p.amount ?? 0), 0);
-        linkedOrder.paidAmount = +(paidSum).toFixed(2);
+        const paymentsForOrder = await manager.find(CustomerPayment, {
+          where: { orderId: linkedOrder.id },
+        });
+        const paidSum = paymentsForOrder.reduce(
+          (s, p) => s + Number(p.amount ?? 0),
+          0,
+        );
+        linkedOrder.paidAmount = +paidSum.toFixed(2);
         linkedOrder.balanceAfter = balanceAfter;
-        if (paidSum >= orderTotal) {
-          linkedOrder.paymentStatus = 'pagado';
-        } else {
-          linkedOrder.paymentStatus = 'deuda';
-        }
+        linkedOrder.paymentStatus = paidSum >= orderTotal ? 'pagado' : 'deuda';
         await manager.save(linkedOrder);
       }
+
       await queryRunner.commitTransaction();
       return saved;
     } catch (err) {
