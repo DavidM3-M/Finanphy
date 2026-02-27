@@ -7,10 +7,12 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Customer } from './entities/customer.entity';
+import { ClientOrder } from '../client_orders/entities/client-order.entity';
+import { CustomerPayment } from './entities/customer-payment.entity';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
-import { Company } from 'src/companies/entities/company.entity';
-import { validateCompanyOwnership } from 'src/common/helpers/validateCompanyOwnership';
+import { Company } from '../companies/entities/company.entity';
+import { validateCompanyOwnership } from '../common/helpers/validateCompanyOwnership';
 
 @Injectable()
 export class CustomersService {
@@ -20,6 +22,12 @@ export class CustomersService {
 
     @InjectRepository(Company)
     private readonly companyRepo: Repository<Company>,
+
+    @InjectRepository(ClientOrder)
+    private readonly ordersRepo: Repository<ClientOrder>,
+
+    @InjectRepository(CustomerPayment)
+    private readonly paymentsRepo: Repository<CustomerPayment>,
   ) {}
 
   async createForUser(dto: CreateCustomerDto, userId: string) {
@@ -124,5 +132,46 @@ export class CustomersService {
   async removeForUser(id: string, userId: string) {
     const customer = await this.findOneForUser(id, userId);
     return this.customersRepo.remove(customer);
+  }
+
+  async debtSummaryForUser(id: string, userId: string) {
+    const customer = await this.findOneForUser(id, userId);
+
+    // fetch orders for this customer that are marked as 'deuda'
+    const orders = await this.ordersRepo.find({
+      where: { customerId: customer.id, paymentStatus: 'deuda' },
+      relations: ['items'],
+      order: { createdAt: 'DESC' },
+    });
+
+    // lazy import utility to calculate total
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { calculateOrderTotal } = require('../client_orders/utils/calculate-order-total');
+
+    const ordersMapped = orders.map((o) => {
+      const total = calculateOrderTotal(o.items);
+      const paid = Number(o.paidAmount ?? 0);
+      const remaining = +(Math.max(0, total - paid)).toFixed(2);
+      return {
+        id: o.id,
+        orderCode: o.orderCode,
+        total,
+        paidAmount: paid,
+        remaining,
+        status: o.status,
+        invoiceUrl: o.invoiceUrl ?? null,
+      };
+    });
+
+    const payments = await this.paymentsRepo.find({ where: { customerId: customer.id }, order: { paidAt: 'DESC' } });
+
+    return {
+      customerId: customer.id,
+      customerName: customer.name,
+      debt: Number(customer.debt ?? 0),
+      credit: Number(customer.credit ?? 0),
+      orders: ordersMapped,
+      payments,
+    };
   }
 }
