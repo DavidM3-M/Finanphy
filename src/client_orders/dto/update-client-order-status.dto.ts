@@ -2,8 +2,7 @@
 import { IsEnum } from 'class-validator';
 
 export enum ClientOrderStatus {
-  Recibido = 'recibido',
-  EnProceso = 'en_proceso',
+  SinEnviar = 'sin_enviar',
   Enviado = 'enviado',
 }
 

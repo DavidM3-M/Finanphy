@@ -33,10 +33,13 @@ export class ClientOrder {
 
   @Column({
     type: 'enum',
-    enum: ['recibido', 'en_proceso', 'enviado'],
-    default: 'recibido',
+    enum: ['sin_enviar', 'enviado'],
+    default: 'sin_enviar',
   })
-  status!: 'recibido' | 'en_proceso' | 'enviado';
+  status!: 'sin_enviar' | 'enviado';
+
+  @Column({ type: 'varchar', length: 20, default: 'generada' })
+  paymentStatus!: 'generada' | 'pagado' | 'deuda' | 'credito';
 
   @CreateDateColumn()
   createdAt!: Date;
@@ -70,6 +73,18 @@ export class ClientOrder {
 
   @Column({ type: 'timestamptz', nullable: true })
   invoiceUploadedAt?: Date | null;
+
+  @Column('decimal', { precision: 12, scale: 2, nullable: true })
+  paidAmount?: number | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  paymentMethod?: string | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  paymentAt?: Date | null;
+
+  @Column('decimal', { precision: 12, scale: 2, nullable: true })
+  balanceAfter?: number | null;
 
   @ManyToOne(() => Customer, (customer) => customer.orders, {
     nullable: true,

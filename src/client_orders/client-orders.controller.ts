@@ -83,6 +83,24 @@ export class ClientOrdersController {
     );
   }
 
+  // List pending invoices / orders with debt for a given customer in a company
+  @Get('company/:companyId/customer/:customerId/debts')
+  findDebtsByCustomer(
+    @Param('companyId', ParseUUIDPipe) companyId: string,
+    @Param('customerId', ParseUUIDPipe) customerId: string,
+    @CurrentUser() user: UserEntity,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.clientOrdersService.getByCompanyAndCustomer(
+      companyId,
+      customerId,
+      user.id,
+      page,
+      limit,
+    );
+  }
+
   // Usuario ve una orden por ID (sólo propio o de la empresa)
   @Get(':id')
   findById(
@@ -113,8 +131,13 @@ export class ClientOrdersController {
 
   // Usuario confirma una orden (valida stock, agrupa ítems, calcula total)
   @Post(':id/confirm')
-  confirmOrder(@Param('id', ParseUUIDPipe) id: string) {
-    return this.clientOrdersService.confirmOrder(id);
+  @UseInterceptors(FileInterceptor('evidence', INVOICE_UPLOAD))
+  confirmOrder(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: { paid?: boolean; paymentMethod?: string; amount?: number } = {},
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return this.clientOrdersService.confirmOrder(id, body, file);
   }
 
   // Subir factura (PDF o imagen)
@@ -140,5 +163,15 @@ export class ClientOrdersController {
   @Delete(':id')
   async delete(@Param('id') id: string, @CurrentUser() user: UserEntity) {
     return this.clientOrdersService.deleteOrder(id, user.id);
+  }
+
+  // Usuario actualiza una orden (solo antes de ser enviada)
+  @Patch(':id')
+  async update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: any,
+    @CurrentUser() user: UserEntity,
+  ) {
+    return this.clientOrdersService.updateOrder(id, dto, user.id);
   }
 }
