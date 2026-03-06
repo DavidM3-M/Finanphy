@@ -20,8 +20,14 @@ import { CalendarModule } from './calendar/calendar.module';
 import { SuppliersModule } from './suppliers/suppliers.module';
 import { SupplierOrdersModule } from './supplier_orders/supplier-orders.module';
 
+import { DebtsModule } from './debts/debts.module';
+import { PaymentsModule } from './payments/payments.module';
+
+
+
 import { OpenaiModule } from './openai/openai.module';
 import { MailModule } from './mail/mail.module';
+
 
 @Module({
   imports: [
@@ -84,6 +90,8 @@ import { MailModule } from './mail/mail.module';
     MailModule,
     CustomersModule,
     SuppliersModule,
+    DebtsModule,
+    PaymentsModule,
     SupplierOrdersModule,
     RemindersModule,
     CalendarModule,
