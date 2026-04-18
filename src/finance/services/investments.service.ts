@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Investment } from '../entities/investment.entity';
 import { CreateInvestmentDto } from '../dto/create-investment.dto';
 import { UpdateInvestmentDto } from '../dto/update-investment.dto';
@@ -14,11 +14,24 @@ export class InvestmentsService {
   constructor(
     @InjectRepository(Investment)
     private investmentsRepository: Repository<Investment>,
+
+    private readonly dataSource: DataSource,
   ) {}
 
-  create(data: CreateInvestmentDto) {
-    const newInvestment = this.investmentsRepository.create(data);
-    return this.investmentsRepository.save(newInvestment);
+  async create(data: CreateInvestmentDto) {
+    const [row] = await this.dataSource.query<Investment[]>(
+      `SELECT * FROM sp_create_investment($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        data.amount,
+        data.category,
+        (data as any).companyId ?? null,
+        data.invoiceNumber ?? null,
+        data.entryDate ? new Date(data.entryDate) : null,
+        data.exitDate ? new Date(data.exitDate) : null,
+        data.dueDate ? new Date(data.dueDate) : null,
+      ],
+    );
+    return row;
   }
 
   async findAll(page?: string, limit?: string) {
@@ -42,16 +55,31 @@ export class InvestmentsService {
   }
 
   async remove(id: number) {
-    const result = await this.investmentsRepository.delete(id);
-    if (result.affected === 0) {
-      throw new NotFoundException(`Inversión con ID ${id} no encontrada`);
-    }
+    // Verificar existencia antes de eliminar
+    await this.findOne(id);
+
+    await this.dataSource.query(`SELECT sp_delete_investment($1)`, [id]);
+
     return { message: 'Inversión eliminada correctamente' };
   }
 
   async update(id: number, dto: UpdateInvestmentDto) {
-    const investment = await this.findOne(id); // validar existencia
-    Object.assign(investment, dto); // actualiza campos que llegan
-    return this.investmentsRepository.save(investment);
+    // Verificar existencia antes de actualizar
+    await this.findOne(id);
+
+    const [row] = await this.dataSource.query<Investment[]>(
+      `SELECT * FROM sp_update_investment($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        id,
+        dto.amount ?? null,
+        dto.category ?? null,
+        dto.invoiceNumber ?? null,
+        dto.entryDate ? new Date(dto.entryDate) : null,
+        dto.exitDate ? new Date(dto.exitDate) : null,
+        dto.dueDate ? new Date(dto.dueDate) : null,
+      ],
+    );
+
+    return row;
   }
 }

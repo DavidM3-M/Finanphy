@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Customer } from './entities/customer.entity';
 import { ClientOrder } from '../client_orders/entities/client-order.entity';
 import { CustomerPayment } from './entities/customer-payment.entity';
@@ -28,6 +28,8 @@ export class CustomersService {
 
     @InjectRepository(CustomerPayment)
     private readonly paymentsRepo: Repository<CustomerPayment>,
+
+    private readonly dataSource: DataSource,
   ) {}
 
   async createForUser(dto: CreateCustomerDto, userId: string) {
@@ -46,19 +48,22 @@ export class CustomersService {
       throw new BadRequestException('credit inválido');
     }
 
-    const customer = this.customersRepo.create({
-      name: dto.name,
-      email: dto.email,
-      phone: dto.phone,
-      documentId: dto.documentId,
-      address: dto.address,
-      notes: dto.notes,
-      companyId: company.id,
-      debt,
-      credit,
-    });
+    const [row] = await this.dataSource.query<Customer[]>(
+      `SELECT * FROM sp_create_customer($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [
+        dto.name,
+        company.id,
+        dto.email ?? null,
+        dto.phone ?? null,
+        dto.documentId ?? null,
+        dto.address ?? null,
+        dto.notes ?? null,
+        debt,
+        credit,
+      ],
+    );
 
-    return this.customersRepo.save(customer);
+    return row;
   }
 
   async findAllForUser(userId: string, companyId?: string) {
@@ -100,38 +105,57 @@ export class CustomersService {
   }
 
   async updateForUser(id: string, dto: UpdateCustomerDto, userId: string) {
-    const customer = await this.findOneForUser(id, userId);
+    // Verificar propiedad antes de actualizar
+    await this.findOneForUser(id, userId);
 
     if (!Object.keys(dto).length) {
       throw new BadRequestException('No update values provided');
     }
 
-    customer.name = dto.name ?? customer.name;
-    customer.email = dto.email ?? customer.email;
-    customer.phone = dto.phone ?? customer.phone;
-    customer.documentId = dto.documentId ?? customer.documentId;
-    customer.address = dto.address ?? customer.address;
-    customer.notes = dto.notes ?? customer.notes;
-    if (dto.debt !== undefined) {
-      const d = dto.debt === null ? null : Number(dto.debt);
-      if (d !== null && (Number.isNaN(d) || d < 0)) {
-        throw new BadRequestException('debt inválido');
+    // Los campos debt/credit se manejan directamente en el repositorio
+    // porque sp_update_customer no los modifica (balance se maneja via pagos)
+    if (dto.debt !== undefined || dto.credit !== undefined) {
+      const customer = await this.customersRepo.findOne({ where: { id } });
+      if (customer) {
+        if (dto.debt !== undefined) {
+          const d = dto.debt === null ? null : Number(dto.debt);
+          if (d !== null && (Number.isNaN(d) || d < 0))
+            throw new BadRequestException('debt inválido');
+          customer.debt = d ?? 0;
+        }
+        if (dto.credit !== undefined) {
+          const c = dto.credit === null ? null : Number(dto.credit);
+          if (c !== null && (Number.isNaN(c) || c < 0))
+            throw new BadRequestException('credit inválido');
+          customer.credit = c ?? 0;
+        }
+        await this.customersRepo.save(customer);
       }
-      customer.debt = d ?? 0;
-    }
-    if (dto.credit !== undefined) {
-      const c = dto.credit === null ? null : Number(dto.credit);
-      if (c !== null && (Number.isNaN(c) || c < 0))
-        throw new BadRequestException('credit inválido');
-      customer.credit = c ?? 0;
     }
 
-    return this.customersRepo.save(customer);
+    const [row] = await this.dataSource.query<Customer[]>(
+      `SELECT * FROM sp_update_customer($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        id,
+        dto.name ?? null,
+        dto.email ?? null,
+        dto.phone ?? null,
+        dto.documentId ?? null,
+        dto.address ?? null,
+        dto.notes ?? null,
+      ],
+    );
+
+    return row;
   }
 
   async removeForUser(id: string, userId: string) {
-    const customer = await this.findOneForUser(id, userId);
-    return this.customersRepo.remove(customer);
+    // Verificar propiedad antes de eliminar
+    await this.findOneForUser(id, userId);
+
+    await this.dataSource.query(`SELECT sp_delete_customer($1)`, [id]);
+
+    return { message: 'Cliente eliminado correctamente' };
   }
 
   async debtSummaryForUser(id: string, userId: string) {
@@ -145,7 +169,7 @@ export class CustomersService {
     });
 
     // lazy import utility to calculate total
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, prettier/prettier
     const { calculateOrderTotal } = require('../client_orders/utils/calculate-order-total');
 
     const ordersMapped = orders.map((o) => {
