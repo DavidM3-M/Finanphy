@@ -151,32 +151,30 @@ PostgreSQL 14
 Crea un archivo `.env` en la raíz del proyecto:
 
 ```env
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5436
-POSTGRES_USERNAME=postgres
-POSTGRES_PASSWORD=postgres
-POSTGRES_DATABASE=finanphy
-POSTGRES_SSL=false
+POSTGRES_HOST=           # host de la base de datos
+POSTGRES_PORT=           # puerto PostgreSQL
+POSTGRES_USERNAME=       # usuario de la BD
+POSTGRES_PASSWORD=       # contraseña de la BD
+POSTGRES_DATABASE=       # nombre de la BD
+POSTGRES_SSL=            # true en producción
 
-JWT_SECRET=tu_secreto_jwt_aqui
+JWT_SECRET=              # clave secreta para firmar tokens JWT
 
-OPENAI_API_KEY=sk-...
+OPENAI_API_KEY=          # clave de OpenAI
 OPENAI_MAX_REQUESTS_PER_MINUTE=10
 
-MAIL_HOST=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USER=tu@gmail.com
-MAIL_PASS=tu_app_password
+MAIL_HOST=               # servidor SMTP
+MAIL_PORT=               # puerto SMTP
+MAIL_USER=               # usuario del correo
+MAIL_PASS=               # contraseña de aplicación
 
-FRONTEND_URL=http://localhost:3000
+FRONTEND_URL=            # URL del frontend (para links de email)
 ```
 
 ### 2. Base de datos local
 
 ```bash
 docker-compose up -d
-# PostgreSQL disponible en localhost:5436
-# pgAdmin disponible en localhost:5050
 ```
 
 ### 3. Instalar dependencias y correr
@@ -230,4 +228,4 @@ El archivo [`Finanphy_Postman_Collection.json`](./Finanphy_Postman_Collection.js
 | Frontend | **Vercel** | React SPA en repositorio separado |
 | Base de datos | **PostgreSQL Cloud** | SSL habilitado (`POSTGRES_SSL=true`) |
 
-CORS configurado para: `localhost:3000`, `localhost:3001`, `finanphy-dev-auth.onrender.com`, `finanphy.vercel.app`.
+Los orígenes permitidos se configuran vía variables de entorno o directamente en `src/main.ts`.
