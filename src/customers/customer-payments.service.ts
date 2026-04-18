@@ -118,37 +118,43 @@ export class CustomerPaymentsService {
           );
       }
 
-      customer.debt = +(currentDebt - amt).toFixed(2);
-      const balanceAfter = Number(customer.debt);
-      await manager.save(customer);
+      // Llamar al procedimiento almacenado: actualiza debt/credit del cliente
+      // y crea el registro en customer_payments de forma atómica
+      const [savedPayment] = await manager.query<CustomerPayment[]>(
+        `SELECT * FROM sp_register_customer_payment($1, $2, $3, $4, $5, $6)`,
+        [
+          customerId,
+          amt,
+          payload.paidAt ? new Date(payload.paidAt) : new Date(),
+          payload.paymentMethod ?? null,
+          payload.note ?? null,
+          payload.orderId ?? null,
+        ],
+      );
 
-      const paymentData: Partial<CustomerPayment> = {
-        customerId,
-        amount: amt,
-        paidAt: payload.paidAt ? new Date(payload.paidAt) : new Date(),
-        paymentMethod: payload.paymentMethod ?? null,
-        note: payload.note ?? null,
-        orderId: payload.orderId ?? null,
-        balanceAfter,
-      };
+      const balanceAfter = Number(savedPayment.balanceAfter ?? 0);
 
+      // Adjuntar evidencia si se proporcionó un archivo
       if (file) {
-        paymentData.evidenceFilename = file.filename ?? null;
-        paymentData.evidenceMime = file.mimetype ?? null;
-        paymentData.evidenceSize = file.size ?? null;
-        paymentData.evidenceUploadedAt = new Date();
-        paymentData.evidenceUrl = `/uploads/${file.filename}`;
+        await manager.update(
+          CustomerPayment,
+          { id: savedPayment.id },
+          {
+            evidenceFilename: file.filename ?? null,
+            evidenceMime: file.mimetype ?? null,
+            evidenceSize: file.size ?? null,
+            evidenceUploadedAt: new Date(),
+            evidenceUrl: `/uploads/${file.filename}`,
+          },
+        );
       }
-
-      const payment = manager.create(CustomerPayment, paymentData as any);
-      const saved = await manager.save(payment);
 
       // Crear Income para el abono evitando duplicados por invoiceNumber + companyId
       const incomePayload: Partial<Income> = {
         amount: amt,
         category: 'abono',
         invoiceNumber: linkedOrder?.orderCode ?? undefined,
-        entryDate: paymentData.paidAt ?? new Date(),
+        entryDate: payload.paidAt ? new Date(payload.paidAt) : new Date(),
         dueDate: undefined,
         company,
         orderId: linkedOrder?.id ?? null,
@@ -192,7 +198,7 @@ export class CustomerPaymentsService {
       }
 
       await queryRunner.commitTransaction();
-      return saved;
+      return savedPayment;
     } catch (err) {
       await queryRunner.rollbackTransaction();
       throw err;

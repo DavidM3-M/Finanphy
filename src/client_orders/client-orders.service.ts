@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   Injectable,
@@ -61,25 +62,13 @@ export class ClientOrdersService {
     queryRunner: QueryRunner,
     items: ClientOrderItem[],
   ) {
+    // Delegar la reserva de stock al procedimiento almacenado sp_reserve_product_stock
+    // que incluye validación y bloqueo pesimista a nivel de DB
     for (const item of items) {
-      const prod = await queryRunner.manager.findOne(Product, {
-        where: { id: item.productId },
-        lock: { mode: 'pessimistic_write' },
-      });
-      if (!prod)
-        throw new NotFoundException(
-          `Producto no encontrado: ${item.productId}`,
-        );
-      const current = Number(prod.stock ?? 0);
-      const qty = Number(item.quantity);
-      if (!Number.isFinite(qty) || qty <= 0)
-        throw new BadRequestException('Cantidad inválida');
-      if (current < qty)
-        throw new BadRequestException(
-          `Stock insuficiente para el producto ${prod.id}`,
-        );
-      prod.stock = current - qty;
-      await queryRunner.manager.save(prod);
+      await queryRunner.manager.query(
+        `SELECT sp_reserve_product_stock($1, $2)`,
+        [item.productId, item.quantity],
+      );
     }
   }
 
@@ -87,16 +76,12 @@ export class ClientOrdersService {
     queryRunner: QueryRunner,
     items: ClientOrderItem[],
   ) {
+    // Restaurar stock vía procedimiento almacenado sp_restore_product_stock
     for (const item of items) {
-      const prod = await queryRunner.manager.findOne(Product, {
-        where: { id: item.productId },
-        lock: { mode: 'pessimistic_write' },
-      });
-      if (!prod) continue;
-      const current = Number(prod.stock ?? 0);
-      const qty = Number(item.quantity);
-      prod.stock = current + qty;
-      await queryRunner.manager.save(prod);
+      await queryRunner.manager.query(
+        `SELECT sp_restore_product_stock($1, $2)`,
+        [item.productId, item.quantity],
+      );
     }
   }
 
@@ -266,7 +251,7 @@ export class ClientOrdersService {
           await manager.save(customer);
 
           // insert payment record into customer_payments table
-          const paymentRow: any = {
+          const paymentRow: Record<string, unknown> = {
             customerId: customer.id,
             orderId: order.id,
             amount: paidAmt,
@@ -296,12 +281,9 @@ export class ClientOrdersService {
               orderId: order.id,
               customerId: customer.id,
             };
-            // use manager to persist within transaction
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             await manager.save(Income, incomeForPayment as any);
           } catch (e) {
-            // non-fatal: if income creation fails, continue but log
-            // eslint-disable-next-line no-console
+            // non-fatal: si la creación del Income falla, continuar
             console.warn('No se pudo crear Income para el abono', e);
           }
 
@@ -343,8 +325,7 @@ export class ClientOrdersService {
                 await manager.save(existingIncome);
               }
             } else {
-              const income = this.incomesRepo.create(incomePayload as any);
-              await manager.save(income);
+              await manager.save(Income, incomePayload as any);
             }
           }
         } else {
@@ -553,8 +534,8 @@ export class ClientOrdersService {
         // If another process inserted the Income concurrently, try to link it
         try {
           // Postgres unique violation code
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          const pgCode = err?.driverError?.code ?? err?.code ?? null;
+          const anyErr = err as Record<string, any>;
+          const pgCode = anyErr?.driverError?.code ?? anyErr?.code ?? null;
           if (pgCode === '23505' && incomePayload.invoiceNumber) {
             const existing = await queryRunner.manager.findOne(Income, {
               where: {
@@ -578,12 +559,10 @@ export class ClientOrdersService {
           }
         } catch (inner) {
           // log inner error but fallthrough to rollback + rethrow original
-          // eslint-disable-next-line no-console
           console.warn('Error handling duplicate income', inner);
         }
 
         await queryRunner.rollbackTransaction();
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         throw err;
       } finally {
         await queryRunner.release();
@@ -596,7 +575,12 @@ export class ClientOrdersService {
 
   async updateOrder(
     orderId: string,
-    dto: { items?: { productId: string; quantity: number }[]; customerId?: string; description?: string; paymentMethod?: string },
+    dto: {
+      items?: { productId: string; quantity: number }[];
+      customerId?: string;
+      description?: string;
+      paymentMethod?: string;
+    },
     userId: string,
   ) {
     const order = await this.orderRepo.findOne({
@@ -607,7 +591,8 @@ export class ClientOrdersService {
 
     const isCreator = order.userId === userId;
     const isReceiver = order.company.userId === userId;
-    if (!isCreator && !isReceiver) throw new ForbiddenException('No tienes permiso para editar esta orden');
+    if (!isCreator && !isReceiver)
+      throw new ForbiddenException('No tienes permiso para editar esta orden');
 
     if (order.status === 'enviado') {
       throw new BadRequestException('No se puede editar una orden ya enviada');
@@ -626,12 +611,20 @@ export class ClientOrdersService {
         await this.restoreStockForOrder(queryRunner, order.items);
 
         // build new items
-        const normalizedItems = dto.items!.map((i) => ({ productId: String(i.productId), quantity: i.quantity }));
-        const products = await this.productRepo.find({ where: { id: In(normalizedItems.map((i) => i.productId)) } });
+        const normalizedItems = dto.items!.map((i) => ({
+          productId: String(i.productId),
+          quantity: i.quantity,
+        }));
+        const products = await this.productRepo.find({
+          where: { id: In(normalizedItems.map((i) => i.productId)) },
+        });
 
         const orderItems: ClientOrderItem[] = normalizedItems.map((i) => {
           const product = products.find((p) => String(p.id) === i.productId);
-          if (!product) throw new BadRequestException(`Producto no encontrado: ${i.productId}`);
+          if (!product)
+            throw new BadRequestException(
+              `Producto no encontrado: ${i.productId}`,
+            );
           const item = new ClientOrderItem();
           item.productId = String(product.id);
           item.quantity = i.quantity;
@@ -646,7 +639,9 @@ export class ClientOrdersService {
 
         // delete existing items and save new ones (using manager)
         // delete by order id to remove previous items
-        await queryRunner.manager.delete(ClientOrderItem, { order: { id: order.id } });
+        await queryRunner.manager.delete(ClientOrderItem, {
+          order: { id: order.id },
+        });
         for (const it of groupedItems) {
           // create a proper entity instance and attach the order relation
           const newItem = new ClientOrderItem();
@@ -654,27 +649,39 @@ export class ClientOrdersService {
           newItem.orderId = order.id as any;
           // keep order relation when possible
           newItem.order = order as any;
-          newItem.productId = String((it as any).productId ?? (it as any).product?.id ?? (it as any).product);
+          newItem.productId = String(
+            (it as any).productId ??
+              (it as any).product?.id ??
+              (it as any).product,
+          );
           newItem.quantity = Number((it as any).quantity ?? 0);
-          newItem.unitPrice = (it as any).unitPrice ?? (it as any).product?.price ?? 0;
+          newItem.unitPrice =
+            (it as any).unitPrice ?? (it as any).product?.price ?? 0;
           // attach product entity when available
           if ((it as any).product) newItem.product = (it as any).product;
           await queryRunner.manager.save(ClientOrderItem, newItem as any);
         }
 
         // reserve stock for new items
-        await this.reserveStockForOrder(queryRunner, groupedItems as ClientOrderItem[]);
+        await this.reserveStockForOrder(queryRunner, groupedItems);
       }
 
       // update other fields
-      if (dto.customerId !== undefined) order.customerId = dto.customerId ?? null;
-      if (dto.description !== undefined) order.description = dto.description === undefined ? null : dto.description;
-      if (dto.paymentMethod !== undefined) order.paymentMethod = dto.paymentMethod ?? null;
+      if (dto.customerId !== undefined)
+        order.customerId = dto.customerId ?? null;
+      if (dto.description !== undefined)
+        order.description =
+          dto.description === undefined ? null : dto.description;
+      if (dto.paymentMethod !== undefined)
+        order.paymentMethod = dto.paymentMethod ?? null;
 
       const saved = await queryRunner.manager.save(order);
       await queryRunner.commitTransaction();
 
-      const updated = await this.orderRepo.findOne({ where: { id: order.id }, relations: ['company', 'user', 'items', 'items.product', 'customer'] });
+      const updated = await this.orderRepo.findOne({
+        where: { id: order.id },
+        relations: ['company', 'user', 'items', 'items.product', 'customer'],
+      });
       return updated ?? saved;
     } catch (err) {
       await queryRunner.rollbackTransaction();

@@ -6,7 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Expense } from '../entities/expense.entity';
 import { CreateExpenseDto } from '../dto/create-expense.dto';
 import { UpdateExpenseDto } from '../dto/update-expense.dto';
@@ -25,6 +25,8 @@ export class ExpensesService {
 
     @InjectRepository(Company)
     private readonly companyRepo: Repository<Company>,
+
+    private readonly dataSource: DataSource,
   ) {}
 
   private async getDefaultCompanyForUser(userId: string): Promise<Company> {
@@ -74,36 +76,49 @@ export class ExpensesService {
       ? await validateCompanyOwnership(this.companyRepo, dto.companyId, userId)
       : await this.getDefaultCompanyForUser(userId);
 
-    const expense = this.expensesRepo.create({
-      amount: dto.amount,
-      category: dto.category,
-      description: dto.description,
-      supplier: dto.supplier,
-      entryDate: dto.entryDate ? new Date(dto.entryDate) : undefined,
-      dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
-      company,
-    });
+    const [row] = await this.dataSource.query<Expense[]>(
+      `SELECT * FROM sp_create_expense($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        dto.amount,
+        dto.category,
+        company.id,
+        dto.description ?? null,
+        dto.supplier ?? null,
+        dto.entryDate ? new Date(dto.entryDate) : null,
+        dto.dueDate ? new Date(dto.dueDate) : null,
+      ],
+    );
 
-    return this.expensesRepo.save(expense);
+    return row;
   }
 
   async updateForUser(id: number, dto: UpdateExpenseDto, userId: string) {
-    const expense = await this.findOneByUser(id, userId);
+    // Verificar propiedad antes de actualizar
+    await this.findOneByUser(id, userId);
 
-    expense.amount = dto.amount ?? expense.amount;
-    expense.category = dto.category ?? expense.category;
-    expense.supplier = dto.supplier ?? expense.supplier;
-    expense.description = dto.description ?? expense.description;
+    const [row] = await this.dataSource.query<Expense[]>(
+      `SELECT * FROM sp_update_expense($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        id,
+        dto.amount ?? null,
+        dto.category ?? null,
+        dto.description ?? null,
+        dto.supplier ?? null,
+        dto.entryDate ? new Date(dto.entryDate) : null,
+        dto.dueDate ? new Date(dto.dueDate) : null,
+      ],
+    );
 
-    if (dto.entryDate) expense.entryDate = new Date(dto.entryDate);
-    if (dto.dueDate) expense.dueDate = new Date(dto.dueDate);
-
-    return this.expensesRepo.save(expense);
+    return row;
   }
 
   async removeForUser(id: number, userId: string) {
-    const expense = await this.findOneByUser(id, userId);
-    return this.expensesRepo.remove(expense);
+    // Verificar propiedad antes de eliminar
+    await this.findOneByUser(id, userId);
+
+    await this.dataSource.query(`SELECT sp_delete_expense($1)`, [id]);
+
+    return { message: 'Gasto eliminado correctamente' };
   }
 
   async attachInvoice(id: number, userId: string, file?: Express.Multer.File) {

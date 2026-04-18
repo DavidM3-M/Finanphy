@@ -96,31 +96,13 @@ export class IncomesService {
 
     const entryDateParsed = this.parseDateInput(dto.entryDate);
     const dueDateParsed = this.parseDateInput(dto.dueDate);
+    const customerId: string | null = (dto as any).customerId ?? null;
+    const orderId: string | null = (dto as any).orderId ?? null;
 
-    // map null -> undefined to satisfy DeepPartial typing (no nulls)
-    const entryDateForCreate = entryDateParsed ?? undefined;
-    const dueDateForCreate = dueDateParsed ?? undefined;
-    const invoiceNumberForCreate = dto.invoiceNumber ?? undefined;
-
-    // create income and optionally apply to customer balance in a transaction
+    // Usar SP sp_create_income + ajuste de saldo en una transacción
     return this.dataSource.transaction(async (manager) => {
-      const inc = manager.create(Income, {
-        amount: dto.amount,
-        category: dto.category,
-        description: dto.description,
-        invoiceNumber: invoiceNumberForCreate,
-        entryDate: entryDateForCreate,
-        dueDate: dueDateForCreate,
-        company,
-        orderId: (dto as any).orderId ?? undefined,
-        customerId: (dto as any).customerId ?? undefined,
-      } as Partial<Income>);
-
-      const saved = await manager.save(inc);
-
-      // If linked to a customer, adjust balances
-      if ((dto as any).customerId) {
-        const customerId = (dto as any).customerId;
+      // Verificar customer dentro de la misma transacción si aplica
+      if (customerId) {
         const customer = await manager.findOne(Customer, {
           where: { id: customerId },
           lock: { mode: 'pessimistic_write' },
@@ -132,49 +114,74 @@ export class IncomesService {
         const amt = Number(dto.amount);
         const currentDebt = Number(customer.debt ?? 0);
         const currentCredit = Number(customer.credit ?? 0);
-        let newDebt = currentDebt;
-        let newCredit = currentCredit;
 
         if (currentDebt >= amt) {
-          newDebt = +(currentDebt - amt).toFixed(2);
+          customer.debt = +(currentDebt - amt).toFixed(2);
         } else {
           const remaining = +(amt - currentDebt).toFixed(2);
-          newDebt = 0;
-          newCredit = +(currentCredit + remaining).toFixed(2);
+          customer.debt = 0;
+          customer.credit = +(currentCredit + remaining).toFixed(2);
         }
-
-        customer.debt = newDebt;
-        customer.credit = newCredit;
         await manager.save(customer);
       }
 
-      return saved;
+      // Llamar al procedimiento almacenado para crear el ingreso
+      const [row] = await manager.query<Income[]>(
+        `SELECT * FROM sp_create_income($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [
+          dto.amount,
+          dto.category,
+          company.id,
+          dto.description ?? null,
+          dto.invoiceNumber ?? null,
+          entryDateParsed ?? null,
+          dueDateParsed ?? null,
+          orderId,
+          customerId,
+        ],
+      );
+
+      return row;
     });
   }
 
   async updateForUser(id: number, dto: UpdateIncomeDto, userId: string) {
-    const income = await this.findOneByUser(id, userId);
+    // Verificar propiedad antes de actualizar
+    await this.findOneByUser(id, userId);
 
-    income.amount = dto.amount ?? income.amount;
-    income.category = dto.category ?? income.category;
-    income.invoiceNumber = dto.invoiceNumber ?? income.invoiceNumber;
-    income.description = dto.description ?? income.description;
+    const entryDateParsed =
+      dto.entryDate !== undefined
+        ? (this.parseDateInput(dto.entryDate) ?? null)
+        : null;
+    const dueDateParsed =
+      dto.dueDate !== undefined
+        ? (this.parseDateInput(dto.dueDate) ?? null)
+        : null;
 
-    if (dto.entryDate !== undefined) {
-      const parsed = this.parseDateInput(dto.entryDate);
-      income.entryDate = parsed ?? income.entryDate;
-    }
+    // Llamar al procedimiento almacenado para actualizar
+    const [row] = await this.dataSource.query<Income[]>(
+      `SELECT * FROM sp_update_income($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        id,
+        dto.amount ?? null,
+        dto.category ?? null,
+        dto.description ?? null,
+        dto.invoiceNumber ?? null,
+        entryDateParsed,
+        dueDateParsed,
+      ],
+    );
 
-    if (dto.dueDate !== undefined) {
-      const parsed = this.parseDateInput(dto.dueDate);
-      income.dueDate = parsed ?? income.dueDate;
-    }
-
-    return this.incomesRepo.save(income);
+    return row;
   }
 
   async removeForUser(id: number, userId: string) {
-    const income = await this.findOneByUser(id, userId);
-    return this.incomesRepo.remove(income);
+    // Verificar propiedad antes de eliminar
+    await this.findOneByUser(id, userId);
+
+    // Llamar al procedimiento almacenado para eliminar
+    await this.dataSource.query(`SELECT sp_delete_income($1)`, [id]);
+
+    return { message: 'Ingreso eliminado correctamente' };
   }
 }
