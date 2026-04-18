@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
+import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { ClientOrdersService } from './client-orders.service';
@@ -23,11 +24,14 @@ import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { UserEntity } from 'src/users/entities/user.entity';
 
-const UPLOADS_DIR = path.resolve(process.cwd(), 'uploads');
+const INVOICE_DIR = path.resolve(process.cwd(), 'uploads', 'invoices', 'client-orders');
 
 const INVOICE_UPLOAD = {
   storage: diskStorage({
-    destination: UPLOADS_DIR,
+    destination: (_req, _file, cb) => {
+      fs.mkdirSync(INVOICE_DIR, { recursive: true });
+      cb(null, INVOICE_DIR);
+    },
     filename: (_req, file, cb) => {
       const ext = path.extname(file.originalname) || '';
       cb(null, `${uuidv4()}${ext}`);

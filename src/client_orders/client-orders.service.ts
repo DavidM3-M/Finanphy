@@ -94,7 +94,7 @@ export class ClientOrdersService {
     order.invoiceMime = file.mimetype ?? null;
     order.invoiceSize = file.size ?? null;
     order.invoiceUploadedAt = new Date();
-    order.invoiceUrl = `/uploads/${file.filename}`;
+    order.invoiceUrl = `/uploads/invoices/client-orders/${file.filename}`;
   }
 
   async create(
@@ -713,8 +713,9 @@ export class ClientOrdersService {
     try {
       await this.restoreStockForOrder(queryRunner, order.items);
 
-      if (order.invoiceFilename) {
-        const fileOnDisk = path.resolve(UPLOADS_DIR, order.invoiceFilename);
+      if (order.invoiceUrl) {
+        const relativePath = order.invoiceUrl.replace(/^\/uploads\//, '');
+        const fileOnDisk = path.resolve(UPLOADS_DIR, relativePath);
         try {
           if (fs.existsSync(fileOnDisk)) fs.unlinkSync(fileOnDisk);
         } catch {
@@ -774,8 +775,9 @@ export class ClientOrdersService {
       throw new ForbiddenException('No tienes acceso a esta orden');
     }
 
-    if (order.invoiceFilename) {
-      const fileOnDisk = path.resolve(UPLOADS_DIR, order.invoiceFilename);
+    if (order.invoiceUrl) {
+      const relativePath = order.invoiceUrl.replace(/^\/uploads\//, '');
+      const fileOnDisk = path.resolve(UPLOADS_DIR, relativePath);
       try {
         if (fs.existsSync(fileOnDisk)) fs.unlinkSync(fileOnDisk);
       } catch {

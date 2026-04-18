@@ -98,7 +98,7 @@ export class SupplierOrdersService {
     order.invoiceMime = file.mimetype ?? null;
     order.invoiceSize = file.size ?? null;
     order.invoiceUploadedAt = new Date();
-    order.invoiceUrl = `/uploads/${file.filename}`;
+    order.invoiceUrl = `/uploads/invoices/supplier-orders/${file.filename}`;
     return this.ordersRepo.save(order);
   }
 
