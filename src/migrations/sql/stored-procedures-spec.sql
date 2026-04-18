@@ -553,3 +553,185 @@ SELECT sa.*, p.name AS product_name
 FROM stock_alerts sa
 JOIN product p ON p.id = sa."productId"
 ORDER BY sa.alerted_at DESC;
+
+
+-- =============================================================================
+-- GUÍA PASO A PASO: CÓMO FUNCIONA CADA TRIGGER
+-- =============================================================================
+
+-- -----------------------------------------------------------------------------
+-- TRIGGER 1: trg_customers_set_updated_at
+-- Tabla    : customers
+-- Evento   : BEFORE UPDATE (se ejecuta ANTES de que la fila sea modificada)
+-- -----------------------------------------------------------------------------
+/*
+  PASO A PASO:
+  1. El backend llama a sp_update_customer(...) o hace un UPDATE directo sobre customers.
+  2. ANTES de escribir la fila, PostgreSQL invoca automáticamente fn_set_updated_at().
+  3. fn_set_updated_at() asigna NEW."updatedAt" = NOW().
+  4. La fila se guarda con la fecha de modificación actualizada.
+  5. No requiere que el backend envíe el campo updatedAt — se gestiona solo.
+
+  CÓMO PROBARLO:
+    -- Guarda el updatedAt actual
+    SELECT id, "updatedAt" FROM customers LIMIT 1;
+
+    -- Actualiza cualquier campo
+    UPDATE customers SET name = name WHERE id = 'uuid-cliente';
+
+    -- Verifica que updatedAt cambió
+    SELECT id, "updatedAt" FROM customers WHERE id = 'uuid-cliente';
+*/
+
+-- -----------------------------------------------------------------------------
+-- TRIGGER 2: trg_suppliers_set_updated_at
+-- Tabla    : suppliers
+-- Evento   : BEFORE UPDATE
+-- -----------------------------------------------------------------------------
+/*
+  PASO A PASO: Idéntico a trg_customers_set_updated_at pero sobre la tabla suppliers.
+
+  CÓMO PROBARLO:
+    SELECT id, "updatedAt" FROM suppliers LIMIT 1;
+    UPDATE suppliers SET name = name WHERE id = 'uuid-proveedor';
+    SELECT id, "updatedAt" FROM suppliers WHERE id = 'uuid-proveedor';
+*/
+
+-- -----------------------------------------------------------------------------
+-- TRIGGER 3: trg_investment_set_updated_at
+-- Tabla    : investment
+-- Evento   : BEFORE UPDATE
+-- -----------------------------------------------------------------------------
+/*
+  PASO A PASO: Idéntico pero sobre la tabla investment.
+
+  CÓMO PROBARLO:
+    SELECT id, "updatedAt" FROM investment LIMIT 1;
+    SELECT * FROM sp_update_investment(<id>, 99999.00, NULL, NULL, NULL, NULL, NULL);
+    SELECT id, "updatedAt" FROM investment WHERE id = <id>;
+*/
+
+-- -----------------------------------------------------------------------------
+-- TRIGGER 4: trg_income_audit
+-- Tabla    : income
+-- Evento   : AFTER INSERT OR UPDATE OR DELETE
+-- -----------------------------------------------------------------------------
+/*
+  PASO A PASO:
+  1. Cualquier escritura sobre income (INSERT, UPDATE, DELETE) activa fn_audit_income().
+  2. fn_audit_income() determina el tipo de operación (TG_OP).
+  3. Construye un registro con:
+       - table_name  = 'income'
+       - record_id   = ID del registro afectado
+       - action      = 'INSERT' | 'UPDATE' | 'DELETE'
+       - old_data    = fila anterior en JSONB (NULL en INSERT)
+       - new_data    = fila nueva en JSONB (NULL en DELETE)
+       - changed_at  = NOW()
+  4. Inserta ese registro en financial_audit_log.
+  5. La operación original continúa normalmente (trigger AFTER, no la bloquea).
+
+  CÓMO PROBARLO:
+    -- Crear un income vía SP
+    SELECT * FROM sp_create_income(
+      'uuid-user', 'uuid-company', 100.00, 'venta',
+      'INV-AUDIT-001', NOW(), NULL, 'Test auditoría', NULL
+    );
+
+    -- Ver el log generado automáticamente
+    SELECT * FROM financial_audit_log
+    WHERE table_name = 'income'
+    ORDER BY changed_at DESC LIMIT 3;
+*/
+
+-- -----------------------------------------------------------------------------
+-- TRIGGER 5: trg_expense_audit
+-- Tabla    : expense
+-- Evento   : AFTER INSERT OR UPDATE OR DELETE
+-- -----------------------------------------------------------------------------
+/*
+  PASO A PASO: Idéntico a trg_income_audit pero registra cambios en la tabla expense.
+
+  CÓMO PROBARLO:
+    SELECT * FROM sp_create_expense(
+      'uuid-user', 'uuid-company', 200.00, 'operativo',
+      'EXP-AUDIT-001', NOW(), 'Test auditoría gasto'
+    );
+
+    SELECT * FROM financial_audit_log
+    WHERE table_name = 'expense'
+    ORDER BY changed_at DESC LIMIT 3;
+*/
+
+-- -----------------------------------------------------------------------------
+-- TRIGGER 6: trg_investment_audit
+-- Tabla    : investment
+-- Evento   : AFTER INSERT OR UPDATE OR DELETE
+-- -----------------------------------------------------------------------------
+/*
+  PASO A PASO: Idéntico pero registra cambios en la tabla investment.
+
+  CÓMO PROBARLO:
+    SELECT * FROM sp_create_investment(
+      'uuid-user', 'uuid-company', 5000.00, 'maquinaria',
+      'FAC-AUDIT-001', NOW(), NULL, NULL
+    );
+
+    SELECT * FROM financial_audit_log
+    WHERE table_name = 'investment'
+    ORDER BY changed_at DESC LIMIT 3;
+*/
+
+-- -----------------------------------------------------------------------------
+-- TRIGGER 7: trg_low_stock_alert
+-- Tabla    : product
+-- Evento   : AFTER UPDATE OF stock
+-- -----------------------------------------------------------------------------
+/*
+  PASO A PASO:
+  1. Cuando sp_reserve_product_stock reduce el stock de un producto,
+     PostgreSQL detecta que la columna "stock" fue modificada.
+  2. fn_low_stock_alert() evalúa la condición:
+       OLD.stock >= 5 AND NEW.stock < 5
+     (solo dispara si el stock CRUZÓ el umbral, no en cada reducción)
+  3. Si la condición es verdadera, inserta en stock_alerts:
+       - productId  = ID del producto
+       - stock      = nuevo valor de stock
+       - threshold  = 5 (umbral fijo)
+       - alerted_at = NOW()
+  4. El backend puede consultar stock_alerts periódicamente para
+     enviar notificaciones push o emails.
+
+  CÓMO PROBARLO:
+    -- Primero asegúrate de que el producto tiene stock >= 5
+    UPDATE product SET stock = 6 WHERE id = 'uuid-producto';
+
+    -- Reserva 2 unidades (stock baja de 6 a 4, cruza el umbral de 5)
+    SELECT * FROM sp_reserve_product_stock('uuid-producto', 2);
+
+    -- Verificar que se generó la alerta
+    SELECT sa.*, p.name AS producto
+    FROM stock_alerts sa
+    JOIN product p ON p.id = sa."productId"
+    WHERE sa."productId" = 'uuid-producto'
+    ORDER BY sa.alerted_at DESC LIMIT 3;
+
+    -- Restaurar stock (el trigger NO se dispara al subir, solo al bajar)
+    SELECT * FROM sp_restore_product_stock('uuid-producto', 2);
+*/
+
+-- -----------------------------------------------------------------------------
+-- CONSULTA UNIFICADA: ver toda la actividad reciente de auditoría
+-- -----------------------------------------------------------------------------
+/*
+  SELECT
+    al.id,
+    al.table_name        AS tabla,
+    al.action            AS operacion,
+    al.record_id         AS registro_id,
+    al.old_data ->> 'amount' AS monto_anterior,
+    al.new_data ->> 'amount' AS monto_nuevo,
+    al.changed_at        AS momento
+  FROM financial_audit_log al
+  ORDER BY al.changed_at DESC
+  LIMIT 20;
+*/

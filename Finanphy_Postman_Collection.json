@@ -1,0 +1,1057 @@
+{
+  "info": {
+    "name": "Finanphy API",
+    "description": "Colección completa de la API REST de Finanphy. Plataforma de gestión financiera y operacional multi-empresa.\n\n## Configuración inicial\n1. Importa esta colección en Postman.\n2. Crea un Environment con las variables: `baseUrl`, `token`, `companyId`, `userId`.\n3. Ejecuta **Login** para obtener el token.\n4. El token se guarda automáticamente vía el script \"Tests\" del endpoint Login.\n\n## Variables de entorno requeridas\n| Variable | Ejemplo |\n|---|---|\n| `baseUrl` | `https://finanphy-dev-auth.onrender.com` |\n| `token` | (se llena automáticamente al hacer Login) |\n| `companyId` | UUID de la empresa del usuario |\n| `userId` | UUID del usuario autenticado |",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "companyId", "value": "", "type": "string" },
+    { "key": "userId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "01 - Auth",
+      "description": "Registro, login, perfil y recuperación de contraseña. Todos los endpoints con [PUBLIC] no requieren token.",
+      "item": [
+        {
+          "name": "Registro de usuario [PUBLIC]",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Juan\",\n  \"lastName\": \"Pérez\",\n  \"email\": \"juan@empresa.com\",\n  \"password\": \"Segura1234!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Crea un nuevo usuario. Retorna access_token JWT."
+          }
+        },
+        {
+          "name": "Login [PUBLIC]",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.access_token) {",
+                  "  pm.collectionVariables.set('token', json.access_token);",
+                  "  console.log('Token guardado automáticamente');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"juan@empresa.com\",\n  \"password\": \"Segura1234!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Autentica el usuario. El script Tests guarda el `access_token` en la variable `token` automáticamente. Token expira en 1h."
+          }
+        },
+        {
+          "name": "Obtener perfil propio",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/auth/profile", "host": ["{{baseUrl}}"], "path": ["auth", "profile"] },
+            "description": "Retorna los datos del usuario autenticado según el token JWT."
+          }
+        },
+        {
+          "name": "Solicitar recuperación de contraseña [PUBLIC]",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/auth/forgot-password", "host": ["{{baseUrl}}"], "path": ["auth", "forgot-password"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"juan@empresa.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Envía un email con el enlace de restablecimiento de contraseña."
+          }
+        },
+        {
+          "name": "Restablecer contraseña [PUBLIC]",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/auth/reset-password", "host": ["{{baseUrl}}"], "path": ["auth", "reset-password"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"juan@empresa.com\",\n  \"token\": \"TOKEN_DEL_EMAIL\",\n  \"newPassword\": \"NuevaSegura1234!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Restablece la contraseña usando el token recibido por email."
+          }
+        },
+        {
+          "name": "Ruta exclusiva Admin",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/auth/admin", "host": ["{{baseUrl}}"], "path": ["auth", "admin"] },
+            "description": "Solo accesible para usuarios con rol 'admin'."
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Users",
+      "description": "CRUD de usuarios. GET all y DELETE son exclusivos de Admin. El token JWT debe pertenecer a un Admin para estas operaciones.",
+      "item": [
+        {
+          "name": "Crear usuario (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/users", "host": ["{{baseUrl}}"], "path": ["users"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Maria\",\n  \"lastName\": \"García\",\n  \"email\": \"maria@empresa.com\",\n  \"password\": \"Segura1234!\",\n  \"role\": \"user\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Requiere rol Admin. Crea un nuevo usuario en el sistema."
+          }
+        },
+        {
+          "name": "Listar usuarios (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/users?page=1&limit=20",
+              "host": ["{{baseUrl}}"], "path": ["users"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Número de página (default: 1)" },
+                { "key": "limit", "value": "20", "description": "Resultados por página (default: 20)" }
+              ]
+            },
+            "description": "Solo Admin. Lista todos los usuarios con paginación."
+          }
+        },
+        {
+          "name": "Obtener usuario por ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] },
+            "description": "Retorna un usuario por su UUID."
+          }
+        },
+        {
+          "name": "Actualizar usuario",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Juan Carlos\",\n  \"lastName\": \"Pérez\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Actualiza campos del usuario. Envía solo los campos a modificar."
+          }
+        },
+        {
+          "name": "Eliminar usuario (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] },
+            "description": "Requiere rol Admin. Elimina un usuario por su UUID."
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Companies",
+      "description": "Gestión de empresas. Cada usuario está vinculado a una empresa. El companyId se extrae del JWT en la mayoría de endpoints.",
+      "item": [
+        {
+          "name": "Crear empresa",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/companies", "host": ["{{baseUrl}}"], "path": ["companies"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mi Empresa S.A.\",\n  \"rfc\": \"EMP123456ABC\",\n  \"phone\": \"+52 555 1234567\",\n  \"address\": \"Calle Principal 123, CDMX\",\n  \"email\": \"contacto@miempresa.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Crea una empresa y la vincula al usuario autenticado."
+          }
+        },
+        {
+          "name": "Obtener mi empresa",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/companies/my", "host": ["{{baseUrl}}"], "path": ["companies", "my"] },
+            "description": "Retorna la empresa vinculada al usuario del token."
+          }
+        },
+        {
+          "name": "Obtener empresa por ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/companies/{{companyId}}", "host": ["{{baseUrl}}"], "path": ["companies", "{{companyId}}"] },
+            "description": "Retorna datos de una empresa por su UUID."
+          }
+        },
+        {
+          "name": "Actualizar empresa",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/companies/{{companyId}}", "host": ["{{baseUrl}}"], "path": ["companies", "{{companyId}}"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mi Empresa Actualizada S.A.\",\n  \"phone\": \"+52 555 9876543\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Actualiza datos de la empresa. Solo el propietario puede modificarla."
+          }
+        },
+        {
+          "name": "Eliminar empresa",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/companies/{{companyId}}", "host": ["{{baseUrl}}"], "path": ["companies", "{{companyId}}"] },
+            "description": "Elimina la empresa. Solo el propietario puede hacerlo."
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Finance / Ingresos",
+      "description": "CRUD de ingresos de la empresa. Todos los registros se filtran automáticamente por el companyId del token JWT. Las operaciones de escritura usan stored procedures.",
+      "item": [
+        {
+          "name": "Listar ingresos",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/incomes?page=1&limit=20",
+              "host": ["{{baseUrl}}"], "path": ["incomes"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Página (default: 1)" },
+                { "key": "limit", "value": "20", "description": "Resultados por página (default: 20)" }
+              ]
+            },
+            "description": "Lista todos los ingresos de la empresa del usuario autenticado. Paginado."
+          }
+        },
+        {
+          "name": "Obtener ingreso por ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/incomes/1", "host": ["{{baseUrl}}"], "path": ["incomes", "1"] },
+            "description": "Retorna un ingreso específico por su ID numérico."
+          }
+        },
+        {
+          "name": "Crear ingreso",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/incomes", "host": ["{{baseUrl}}"], "path": ["incomes"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 5000.00,\n  \"description\": \"Venta de producto estrella\",\n  \"category\": \"ventas\",\n  \"date\": \"2026-04-17\",\n  \"companyId\": \"{{companyId}}\",\n  \"customerId\": null,\n  \"orderId\": null\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Crea un ingreso. Internamente llama al stored procedure `sp_create_income`. `customerId` y `orderId` son opcionales para vincular el ingreso a un cliente u orden."
+          }
+        },
+        {
+          "name": "Actualizar ingreso",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/incomes/1", "host": ["{{baseUrl}}"], "path": ["incomes", "1"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 5500.00,\n  \"description\": \"Venta de producto estrella (corregido)\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Actualiza un ingreso. Usa `sp_update_income`. Solo envía los campos a modificar."
+          }
+        },
+        {
+          "name": "Eliminar ingreso",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/incomes/1", "host": ["{{baseUrl}}"], "path": ["incomes", "1"] },
+            "description": "Elimina un ingreso por ID usando `sp_delete_income`."
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Finance / Egresos",
+      "description": "CRUD de egresos/gastos. Soporta adjuntar factura en PDF o imagen. Las escrituras usan stored procedures.",
+      "item": [
+        {
+          "name": "Listar egresos",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/expenses?page=1&limit=20",
+              "host": ["{{baseUrl}}"], "path": ["expenses"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Lista todos los egresos de la empresa del usuario autenticado."
+          }
+        },
+        {
+          "name": "Obtener egreso por ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/expenses/1", "host": ["{{baseUrl}}"], "path": ["expenses", "1"] },
+            "description": "Retorna un egreso específico por ID numérico."
+          }
+        },
+        {
+          "name": "Crear egreso",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/expenses", "host": ["{{baseUrl}}"], "path": ["expenses"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1200.50,\n  \"description\": \"Pago de servicios de internet\",\n  \"category\": \"servicios\",\n  \"date\": \"2026-04-17\",\n  \"companyId\": \"{{companyId}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Crea un egreso. Usa `sp_create_expense`."
+          }
+        },
+        {
+          "name": "Adjuntar factura a egreso (multipart)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/expenses/1/invoice", "host": ["{{baseUrl}}"], "path": ["expenses", "1", "invoice"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "invoice",
+                  "type": "file",
+                  "description": "Archivo de factura. Tipos permitidos: PDF, JPEG, PNG, WebP. Tamaño máximo: 15MB."
+                }
+              ]
+            },
+            "description": "Adjunta un archivo de factura (PDF o imagen) al egreso. El campo del form debe llamarse `invoice`."
+          }
+        },
+        {
+          "name": "Actualizar egreso",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/expenses/1", "host": ["{{baseUrl}}"], "path": ["expenses", "1"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1350.00,\n  \"description\": \"Pago de servicios de internet (ajuste)\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Actualiza un egreso. Usa `sp_update_expense`."
+          }
+        },
+        {
+          "name": "Eliminar egreso",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/expenses/1", "host": ["{{baseUrl}}"], "path": ["expenses", "1"] },
+            "description": "Elimina un egreso por ID usando `sp_delete_expense`."
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Finance / Inversiones",
+      "description": "CRUD de inversiones de la empresa.",
+      "item": [
+        {
+          "name": "Listar inversiones",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/investments?page=1&limit=20",
+              "host": ["{{baseUrl}}"], "path": ["investments"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Obtener inversión por ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/investments/1", "host": ["{{baseUrl}}"], "path": ["investments", "1"] }
+          }
+        },
+        {
+          "name": "Crear inversión",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/investments", "host": ["{{baseUrl}}"], "path": ["investments"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 20000.00,\n  \"description\": \"Compra de equipo de cómputo\",\n  \"category\": \"activos\",\n  \"date\": \"2026-04-17\",\n  \"companyId\": \"{{companyId}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Crea una inversión. Usa `sp_create_investment`."
+          }
+        },
+        {
+          "name": "Actualizar inversión",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/investments/1", "host": ["{{baseUrl}}"], "path": ["investments", "1"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 22000.00,\n  \"description\": \"Compra de equipo de cómputo y periféricos\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "Eliminar inversión",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/investments/1", "host": ["{{baseUrl}}"], "path": ["investments", "1"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Products (Inventario)",
+      "description": "Gestión de inventario. Soporta carga de imágenes vía multipart/form-data. Al crear o actualizar, el campo de imagen debe llamarse `image`. Al bajar el stock por debajo del mínimo, un trigger de BD crea una alerta automática.",
+      "item": [
+        {
+          "name": "Verificar stock de múltiples productos",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/products/check-stock", "host": ["{{baseUrl}}"], "path": ["products", "check-stock"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    { \"productId\": \"UUID-PRODUCTO-1\", \"quantity\": 5 },\n    { \"productId\": \"UUID-PRODUCTO-2\", \"quantity\": 2 }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Verifica si hay stock suficiente para una lista de productos antes de crear una orden. No requiere rol específico."
+          }
+        },
+        {
+          "name": "Listar productos",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/products?page=1&limit=20",
+              "host": ["{{baseUrl}}"], "path": ["products"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Lista los productos de la empresa del usuario. Solo rol User."
+          }
+        },
+        {
+          "name": "Obtener producto por ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/products/UUID-PRODUCTO", "host": ["{{baseUrl}}"], "path": ["products", "UUID-PRODUCTO"] },
+            "description": "Retorna un producto privado por UUID. Solo accesible por el propietario."
+          }
+        },
+        {
+          "name": "Crear producto (con imagen)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/products", "host": ["{{baseUrl}}"], "path": ["products"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name", "value": "Producto A", "type": "text", "description": "Nombre del producto" },
+                { "key": "sku", "value": "PROD-001", "type": "text", "description": "SKU único por empresa" },
+                { "key": "price", "value": "150.00", "type": "text", "description": "Precio unitario" },
+                { "key": "stock", "value": "100", "type": "text", "description": "Stock inicial" },
+                { "key": "stockMin", "value": "10", "type": "text", "description": "Stock mínimo (alerta automática si baja)" },
+                { "key": "description", "value": "Descripción del producto", "type": "text" },
+                { "key": "companyId", "value": "{{companyId}}", "type": "text" },
+                { "key": "expiresAt", "value": "2027-12-31", "type": "text", "description": "Fecha de vencimiento (opcional)" },
+                { "key": "entryDate", "value": "2026-04-17", "type": "text", "description": "Fecha de entrada al inventario (opcional)" },
+                { "key": "image", "type": "file", "description": "Imagen del producto. Tipos: JPEG, PNG, WebP. Máx: 10MB. Campo opcional." }
+              ]
+            },
+            "description": "Crea un producto con imagen opcional. Usa multipart/form-data. La imagen se guarda en /uploads con nombre UUID."
+          }
+        },
+        {
+          "name": "Actualizar producto (con imagen)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/products/UUID-PRODUCTO", "host": ["{{baseUrl}}"], "path": ["products", "UUID-PRODUCTO"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name", "value": "Producto A Actualizado", "type": "text" },
+                { "key": "price", "value": "175.00", "type": "text" },
+                { "key": "stock", "value": "120", "type": "text" },
+                { "key": "image", "type": "file", "description": "Nueva imagen (opcional). Si no se envía, se conserva la actual." }
+              ]
+            },
+            "description": "Actualiza un producto. Campos opcionales: solo enviar lo que se desea modificar. Si se adjunta imagen, reemplaza la anterior."
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 - Client Orders (Órdenes de venta)",
+      "description": "Ciclo completo de órdenes: creación → confirmación → factura. Al crear una orden se reserva el stock vía `sp_reserve_product_stock`. Al cancelar se restaura con `sp_restore_product_stock`.",
+      "item": [
+        {
+          "name": "Crear orden",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/client-orders", "host": ["{{baseUrl}}"], "path": ["client-orders"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyId\": \"{{companyId}}\",\n  \"customerId\": \"UUID-CLIENTE\",\n  \"description\": \"Pedido especial cliente VIP\",\n  \"items\": [\n    { \"productId\": \"UUID-PRODUCTO-1\", \"quantity\": 3, \"unitPrice\": 150.00 },\n    { \"productId\": \"UUID-PRODUCTO-2\", \"quantity\": 1, \"unitPrice\": 450.00 }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Crea una orden en estado 'pendiente'. Descuenta el stock de cada ítem via stored procedure. `customerId` es opcional."
+          }
+        },
+        {
+          "name": "Listar órdenes por empresa",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/client-orders/company/{{companyId}}?page=1&limit=20",
+              "host": ["{{baseUrl}}"], "path": ["client-orders", "company", "{{companyId}}"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Lista todas las órdenes de una empresa. Filtradas por el usuario autenticado."
+          }
+        },
+        {
+          "name": "Listar deudas de cliente en empresa",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/client-orders/company/{{companyId}}/customer/UUID-CLIENTE/debts?page=1&limit=20",
+              "host": ["{{baseUrl}}"], "path": ["client-orders", "company", "{{companyId}}", "customer", "UUID-CLIENTE", "debts"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Lista órdenes con deuda pendiente de un cliente específico dentro de una empresa."
+          }
+        },
+        {
+          "name": "Listar todas mis órdenes",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/client-orders?page=1&limit=20",
+              "host": ["{{baseUrl}}"], "path": ["client-orders"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Lista todas las órdenes del usuario autenticado sin filtrar por empresa."
+          }
+        },
+        {
+          "name": "Cambiar estado de orden",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/client-orders/UUID-ORDEN/status", "host": ["{{baseUrl}}"], "path": ["client-orders", "UUID-ORDEN", "status"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"confirmada\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Actualiza el estado de la orden. Estados válidos: `pendiente`, `confirmada`, `cancelada`, `enviada`, `sin_enviar`. Al cancelar, el stock se restaura automáticamente."
+          }
+        },
+        {
+          "name": "Confirmar orden (con evidencia)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/client-orders/UUID-ORDEN/confirm", "host": ["{{baseUrl}}"], "path": ["client-orders", "UUID-ORDEN", "confirm"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "paid", "value": "true", "type": "text", "description": "Si el pago ya fue recibido" },
+                { "key": "paymentMethod", "value": "transferencia", "type": "text", "description": "Método de pago" },
+                { "key": "amount", "value": "900.00", "type": "text", "description": "Monto pagado" },
+                { "key": "evidence", "type": "file", "description": "Comprobante de pago (PDF/imagen, opcional, máx 15MB)" }
+              ]
+            },
+            "description": "Confirma una orden, valida stock, calcula total y puede adjuntar evidencia de pago."
+          }
+        },
+        {
+          "name": "Subir factura a orden",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/client-orders/UUID-ORDEN/invoice", "host": ["{{baseUrl}}"], "path": ["client-orders", "UUID-ORDEN", "invoice"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "invoice", "type": "file", "description": "Factura en PDF o imagen (JPEG/PNG/WebP). Máx: 15MB." }
+              ]
+            },
+            "description": "Adjunta o reemplaza la factura de una orden."
+          }
+        },
+        {
+          "name": "Eliminar factura de orden",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/client-orders/UUID-ORDEN/invoice", "host": ["{{baseUrl}}"], "path": ["client-orders", "UUID-ORDEN", "invoice"] },
+            "description": "Elimina la factura adjunta de una orden."
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 - Customers (Clientes)",
+      "description": "Directorio de clientes con historial de deuda y pagos. Los pagos pueden tener evidencia adjunta (imagen/PDF). El balance de deuda se actualiza automáticamente via `sp_register_customer_payment`.",
+      "item": [
+        {
+          "name": "Listar clientes",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/customers?companyId={{companyId}}",
+              "host": ["{{baseUrl}}"], "path": ["customers"],
+              "query": [{ "key": "companyId", "value": "{{companyId}}", "description": "Filtrar por empresa (opcional)" }]
+            },
+            "description": "Lista todos los clientes del usuario. Se puede filtrar por empresa."
+          }
+        },
+        {
+          "name": "Crear cliente",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/customers", "host": ["{{baseUrl}}"], "path": ["customers"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Carlos Ramírez\",\n  \"email\": \"carlos@email.com\",\n  \"phone\": \"+52 555 1122334\",\n  \"address\": \"Av. Reforma 456, CDMX\",\n  \"companyId\": \"{{companyId}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Crea un cliente. Internamente usa `sp_create_customer`. La deuda inicial es 0."
+          }
+        },
+        {
+          "name": "Obtener cliente por ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/customers/UUID-CLIENTE", "host": ["{{baseUrl}}"], "path": ["customers", "UUID-CLIENTE"] }
+          }
+        },
+        {
+          "name": "Actualizar cliente",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/customers/UUID-CLIENTE", "host": ["{{baseUrl}}"], "path": ["customers", "UUID-CLIENTE"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+52 555 9988776\",\n  \"address\": \"Nueva dirección\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "Eliminar cliente",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/customers/UUID-CLIENTE", "host": ["{{baseUrl}}"], "path": ["customers", "UUID-CLIENTE"] }
+          }
+        },
+        {
+          "name": "Resumen de deuda del cliente",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/customers/UUID-CLIENTE/debt-summary", "host": ["{{baseUrl}}"], "path": ["customers", "UUID-CLIENTE", "debt-summary"] },
+            "description": "Retorna deuda total acumulada vs. total pagado del cliente."
+          }
+        },
+        {
+          "name": "Listar pagos del cliente",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/customers/UUID-CLIENTE/payments", "host": ["{{baseUrl}}"], "path": ["customers", "UUID-CLIENTE", "payments"] },
+            "description": "Lista el historial de pagos realizados por el cliente."
+          }
+        },
+        {
+          "name": "Registrar pago de cliente (con evidencia)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/customers/UUID-CLIENTE/payments", "host": ["{{baseUrl}}"], "path": ["customers", "UUID-CLIENTE", "payments"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "amount", "value": "500.00", "type": "text", "description": "Monto del pago (requerido, min: 0.01)" },
+                { "key": "paymentMethod", "value": "transferencia", "type": "text", "description": "Método: efectivo, transferencia, tarjeta, etc." },
+                { "key": "paidAt", "value": "2026-04-17", "type": "text", "description": "Fecha del pago" },
+                { "key": "note", "value": "Pago parcial de orden #001", "type": "text", "description": "Nota interna (opcional)" },
+                { "key": "orderId", "value": "UUID-ORDEN", "type": "text", "description": "Vincular a una orden específica (opcional)" },
+                { "key": "evidence", "type": "file", "description": "Comprobante de pago. PDF o imagen. Máx: 15MB. (opcional)" }
+              ]
+            },
+            "description": "Registra un pago. Usa `sp_register_customer_payment` que descuenta la deuda del cliente automáticamente. Usa multipart/form-data para adjuntar evidencia."
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 - Suppliers (Proveedores)",
+      "description": "Directorio de proveedores vinculados a la empresa del usuario.",
+      "item": [
+        {
+          "name": "Crear proveedor",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/suppliers", "host": ["{{baseUrl}}"], "path": ["suppliers"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Distribuidora ABC\",\n  \"contact\": \"Alejandro Torres\",\n  \"phone\": \"+52 555 4455667\",\n  \"email\": \"ventas@distribuidora-abc.com\",\n  \"address\": \"Zona Industrial, CDMX\",\n  \"companyId\": \"{{companyId}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "Listar proveedores",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/suppliers?companyId={{companyId}}",
+              "host": ["{{baseUrl}}"], "path": ["suppliers"],
+              "query": [{ "key": "companyId", "value": "{{companyId}}", "description": "Filtrar por empresa (opcional)" }]
+            }
+          }
+        },
+        {
+          "name": "Obtener proveedor por ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/suppliers/UUID-PROVEEDOR", "host": ["{{baseUrl}}"], "path": ["suppliers", "UUID-PROVEEDOR"] }
+          }
+        },
+        {
+          "name": "Actualizar proveedor",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/suppliers/UUID-PROVEEDOR", "host": ["{{baseUrl}}"], "path": ["suppliers", "UUID-PROVEEDOR"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+52 555 1231231\",\n  \"contact\": \"Roberto Sánchez\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "Eliminar proveedor",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/suppliers/UUID-PROVEEDOR", "host": ["{{baseUrl}}"], "path": ["suppliers", "UUID-PROVEEDOR"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 - Supplier Orders (Órdenes de compra)",
+      "description": "Registro de compras realizadas a proveedores. Soporta adjuntar factura del proveedor.",
+      "item": [
+        {
+          "name": "Crear orden de compra",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/supplier-orders", "host": ["{{baseUrl}}"], "path": ["supplier-orders"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supplierId\": \"UUID-PROVEEDOR\",\n  \"companyId\": \"{{companyId}}\",\n  \"amount\": 8500.00,\n  \"description\": \"Compra de insumos Q2 2026\",\n  \"issuedAt\": \"2026-04-17\",\n  \"dueAt\": \"2026-05-17\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Registra una orden de compra a un proveedor."
+          }
+        },
+        {
+          "name": "Adjuntar factura de proveedor",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/supplier-orders/UUID-ORDEN-COMPRA/invoice", "host": ["{{baseUrl}}"], "path": ["supplier-orders", "UUID-ORDEN-COMPRA", "invoice"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "invoice", "type": "file", "description": "Factura del proveedor. PDF o imagen (JPEG/PNG/WebP). Máx: 15MB." }
+              ]
+            },
+            "description": "Adjunta la factura recibida del proveedor a la orden de compra."
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 - Reminders (Recordatorios)",
+      "description": "Recordatorios manuales y alertas automáticas de stock. Los recordatorios pueden tener un archivo adjunto. El sistema también genera alertas automáticas cuando el stock de un producto baja del mínimo configurado.",
+      "item": [
+        {
+          "name": "Listar recordatorios",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/reminders?from=2026-04-01&to=2026-04-30&companyId={{companyId}}&page=1&limit=20",
+              "host": ["{{baseUrl}}"], "path": ["reminders"],
+              "query": [
+                { "key": "from", "value": "2026-04-01", "description": "Fecha inicio del rango (ISO 8601)" },
+                { "key": "to", "value": "2026-04-30", "description": "Fecha fin del rango (ISO 8601)" },
+                { "key": "companyId", "value": "{{companyId}}", "description": "Filtrar por empresa" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Lista recordatorios en un rango de fechas. Si el stock baja del mínimo, aparecerá aquí como alerta automática."
+          }
+        },
+        {
+          "name": "Crear recordatorio (con adjunto)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/reminders", "host": ["{{baseUrl}}"], "path": ["reminders"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "title", "value": "Pago a proveedor", "type": "text" },
+                { "key": "description", "value": "Vence el pago mensual a Distribuidora ABC", "type": "text" },
+                { "key": "dueDate", "value": "2026-05-01", "type": "text", "description": "Fecha de vencimiento" },
+                { "key": "companyId", "value": "{{companyId}}", "type": "text" },
+                { "key": "attachment", "type": "file", "description": "Archivo adjunto opcional (imagen/PDF, máx 10MB)" }
+              ]
+            },
+            "description": "Crea un recordatorio manual con o sin archivo adjunto."
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 - Calendar (Calendario)",
+      "description": "Vista unificada de eventos del negocio: vencimientos de órdenes, recordatorios y fechas de pago en un rango de tiempo.",
+      "item": [
+        {
+          "name": "Obtener eventos del calendario",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/calendar/events?from=2026-04-01&to=2026-04-30&companyId={{companyId}}",
+              "host": ["{{baseUrl}}"], "path": ["calendar", "events"],
+              "query": [
+                { "key": "from", "value": "2026-04-01", "description": "Fecha inicio del rango (ISO 8601, requerido)" },
+                { "key": "to", "value": "2026-04-30", "description": "Fecha fin del rango (ISO 8601, requerido)" },
+                { "key": "companyId", "value": "{{companyId}}", "description": "UUID de la empresa a consultar" }
+              ]
+            },
+            "description": "Retorna todos los eventos en el rango especificado: recordatorios, vencimientos de órdenes y fechas de pago de clientes."
+          }
+        }
+      ]
+    },
+    {
+      "name": "14 - Reports (Reportes con IA)",
+      "description": "Reportes mensuales con análisis financiero generado por GPT-4. Agrega ingresos, egresos, inversiones, top productos y estado de órdenes, luego genera un análisis en lenguaje natural.",
+      "item": [
+        {
+          "name": "Reporte mensual con IA",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "X-Company-Id", "value": "{{companyId}}", "description": "Prioridad alta: sobreescribe el companyId del token. Útil para Admin." }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/feedback/monthly?period=2026-04&topN=5&orderStatus=confirmada",
+              "host": ["{{baseUrl}}"], "path": ["feedback", "monthly"],
+              "query": [
+                { "key": "period", "value": "2026-04", "description": "Período en formato YYYY-MM (requerido)" },
+                { "key": "topN", "value": "5", "description": "Top N productos más vendidos a incluir en el reporte" },
+                { "key": "orderStatus", "value": "confirmada", "description": "Filtrar órdenes por estado: pendiente, confirmada, cancelada, etc." },
+                { "key": "companyId", "value": "", "description": "Solo Admin: consultar empresa diferente a la del token" }
+              ]
+            },
+            "description": "Genera un reporte mensual con IA. El sistema agrega los datos financieros del período y los envía a GPT-4 para análisis. Incluye retry exponencial si la API de OpenAI responde con rate limit."
+          }
+        }
+      ]
+    },
+    {
+      "name": "15 - OpenAI Chat",
+      "description": "Proxy al endpoint de chat de OpenAI (GPT-4). Requiere autenticación y está sujeto a rate limiting configurable por variable de entorno.",
+      "item": [
+        {
+          "name": "Chat con IA",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/openai/chat", "host": ["{{baseUrl}}"], "path": ["openai", "chat"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messages\": [\n    { \"role\": \"system\", \"content\": \"Eres un asistente financiero experto.\" },\n    { \"role\": \"user\", \"content\": \"¿Cuáles son los mejores indicadores para evaluar la salud financiera de una PYME?\" }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Envía mensajes al modelo GPT-4 via proxy del backend. El backend maneja autenticación con OpenAI, reintentos exponenciales y rate limiting. El campo `messages` es un array de objetos con `role` (system/user/assistant) y `content`."
+          }
+        }
+      ]
+    },
+    {
+      "name": "16 - Public (Sin autenticación)",
+      "description": "Endpoints accesibles sin token JWT. Usados para el catálogo público de productos compartible por QR.",
+      "item": [
+        {
+          "name": "Catálogo público por empresa",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/public/products/company/{{companyId}}?page=1&limit=20",
+              "host": ["{{baseUrl}}"], "path": ["public", "products", "company", "{{companyId}}"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Lista los productos disponibles de una empresa para mostrar en el catálogo público. NO requiere token. Usado por el frontend en la ruta /catalogo/:companyId."
+          }
+        }
+      ]
+    }
+  ]
+}
