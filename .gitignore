@@ -48,6 +48,14 @@ lerna-debug.log*
 .temp
 .tmp
 
+# Uploads - user-generated files are not stored in git
+uploads/**/*.pdf
+uploads/**/*.jpg
+uploads/**/*.jpeg
+uploads/**/*.png
+uploads/**/*.webp
+uploads/**/*.gif
+
 # Runtime data
 pids
 *.pid

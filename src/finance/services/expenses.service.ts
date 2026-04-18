@@ -135,7 +135,7 @@ export class ExpensesService {
     expense.invoiceMime = file.mimetype ?? null;
     expense.invoiceSize = file.size ?? null;
     expense.invoiceUploadedAt = new Date();
-    expense.invoiceUrl = `/uploads/${file.filename}`;
+    expense.invoiceUrl = `/uploads/invoices/expenses/${file.filename}`;
     return this.expensesRepo.save(expense);
   }
 }

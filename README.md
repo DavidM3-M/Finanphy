@@ -1,98 +1,233 @@
+﻿<h1 align="center">Finanphy — Backend API</h1>
+
 <p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
+  Plataforma de gestión financiera y operacional para pequeñas y medianas empresas.<br/>
+  Multi-empresa · Inventario · Finanzas · Reportes con IA · Catálogo público
 </p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
-
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
+<p align="center">
+  <img src="https://img.shields.io/badge/NestJS-11-E0234E?style=flat&logo=nestjs&logoColor=white" alt="NestJS"/>
+  <img src="https://img.shields.io/badge/TypeScript-5-3178C6?style=flat&logo=typescript&logoColor=white" alt="TypeScript"/>
+  <img src="https://img.shields.io/badge/PostgreSQL-14-4169E1?style=flat&logo=postgresql&logoColor=white" alt="PostgreSQL"/>
+  <img src="https://img.shields.io/badge/TypeORM-0.3-FE0902?style=flat" alt="TypeORM"/>
+  <img src="https://img.shields.io/badge/OpenAI-GPT--4-412991?style=flat&logo=openai&logoColor=white" alt="OpenAI"/>
+  <img src="https://img.shields.io/badge/JWT-Auth-000000?style=flat&logo=jsonwebtokens&logoColor=white" alt="JWT"/>
+  <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker&logoColor=white" alt="Docker"/>
+  <img src="https://img.shields.io/badge/Deploy-Render-46E3B7?style=flat&logo=render&logoColor=white" alt="Render"/>
 </p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
-## Description
+---
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Descripción general
 
-## Project setup
+**Finanphy** es una API REST construida con NestJS que permite a negocios gestionar sus operaciones financieras y comerciales desde un solo lugar:
 
-```bash
-$ npm install
+- Registrar **ingresos, egresos e inversiones** con auditoría automática
+- Gestionar **inventario** con control de stock y alertas de stock mínimo
+- Ciclo completo de **órdenes de clientes**: creación → reserva de stock → confirmación → factura
+- Directorio de **clientes** con historial de deuda y pagos con evidencia
+- Gestión de **proveedores** y órdenes de compra
+- **Calendario unificado** de eventos financieros y recordatorios
+- **Reportes mensuales** con análisis generado por GPT-4
+- **Catálogo público** compartible por QR sin autenticación
+
+---
+
+## Stack tecnológico
+
+### Runtime & Framework
+
+| Tecnología | Versión | Uso |
+|---|---|---|
+| **Node.js** | 20+ | Runtime |
+| **NestJS** | 11 | Framework MVC modular con IoC/DI |
+| **TypeScript** | 5 | Tipado estático end-to-end |
+
+### Base de datos & ORM
+
+| Tecnología | Versión | Uso |
+|---|---|---|
+| **PostgreSQL** | 14 | Base de datos relacional principal |
+| **TypeORM** | 0.3 | ORM, entities y migraciones versionadas |
+| **Stored Procedures** | — | 17 SPs para operaciones de escritura críticas |
+| **Triggers** | — | 7 triggers: `updated_at`, auditoría y alertas de stock |
+
+### Autenticación & Seguridad
+
+| Tecnología | Uso |
+|---|---|
+| **Passport + JWT** | Estrategia JWT con guards globales |
+| **bcrypt** | Hash de contraseñas |
+| **class-validator + Joi** | Validación de DTOs y variables de entorno |
+| **RBAC (Roles)** | Roles: `admin`, `user`, `seller`, `client` |
+
+### Integraciones externas
+
+| Servicio | Librería | Uso |
+|---|---|---|
+| **OpenAI GPT-4** | axios + @nestjs/axios | Reportes financieros con IA, retry exponencial |
+| **Nodemailer (Gmail SMTP)** | nodemailer | Recuperación de contraseña por email |
+| **Multer** | @nestjs/platform-express | Upload de imágenes y PDFs (productos, facturas, evidencias) |
+
+### Infraestructura & DevOps
+
+| Herramienta | Uso |
+|---|---|
+| **Docker Compose** | PostgreSQL 14 + pgAdmin local |
+| **Render** | Despliegue del backend en producción |
+| **Vercel** | Frontend React (repo separado) |
+
+---
+
+## Arquitectura
+
+```
+React SPA (Vercel)
+     │ HTTPS / Bearer JWT
+     ▼
+NestJS API (Render)
+  ├── Global: JwtAuthGuard → RolesGuard → ValidationPipe
+  ├── AuthModule           /auth
+  ├── UsersModule          /users
+  ├── CompaniesModule      /companies
+  ├── FinanceModule        /incomes  /expenses  /investments
+  ├── ProductsModule       /products
+  ├── ClientOrdersModule   /client-orders
+  ├── CustomersModule      /customers
+  ├── SuppliersModule      /suppliers
+  ├── SupplierOrdersModule /supplier-orders
+  ├── RemindersModule      /reminders
+  ├── CalendarModule       /calendar
+  ├── ReportsModule        /feedback
+  ├── OpenaiModule         /openai
+  ├── MailModule           (interno)
+  └── PublicModule         /public  (sin auth)
+     │
+     ▼
+PostgreSQL 14
+  Stored Procedures + Triggers
 ```
 
-## Compile and run the project
+---
 
-```bash
-# development
-$ npm run start
+## Módulos principales
 
-# watch mode
-$ npm run start:dev
+| Módulo | Ruta | Descripción |
+|---|---|---|
+| **Auth** | `/auth` | Registro, login, JWT, recuperación de contraseña vía email |
+| **Finance** | `/incomes` `/expenses` `/investments` | Contabilidad con SPs y auditoría automática |
+| **Products** | `/products` | Inventario con imágenes y alerta de stock mínimo por trigger |
+| **Client Orders** | `/client-orders` | Órdenes con reserva de stock, factura, ciclo de estados |
+| **Customers** | `/customers` | CRM ligero: deuda, pagos con evidencia multipart |
+| **Suppliers** | `/suppliers` `/supplier-orders` | Directorio y órdenes de compra con factura |
+| **Reports** | `/feedback` | Reporte mensual agregado + análisis GPT-4 |
+| **OpenAI** | `/openai/chat` | Proxy a GPT-4 con retry exponencial y rate limiting |
+| **Public** | `/public` | Catálogo de productos sin autenticación (compartible por QR) |
 
-# production mode
-$ npm run start:prod
+---
+
+## Decisiones técnicas
+
+**Stored Procedures sobre ORM puro** — Las operaciones críticas (reserva de stock, pagos, finanzas) se ejecutan como SPs para garantizar atomicidad y centralizar la lógica en la BD.
+
+**Triggers de BD** — `updated_at` automático en cada tabla, log de auditoría en INSERT/UPDATE/DELETE y alerta de stock mínimo completamente desacoplada del código de aplicación.
+
+**Multi-tenant por JWT claim** — El `companyId` viaja en el payload del token. Todos los servicios lo extraen vía `@CurrentUser()` sin verificaciones manuales adicionales.
+
+**Retry exponencial en OpenAI** — El servicio implementa reintentos con backoff 500ms → 1s → 2s → 4s para manejar rate limits de la API de IA.
+
+**Uploads con UUID** — Los archivos (imágenes, PDFs) se guardan en `/uploads` con nombre UUID, evitando colisiones y exponiendo la URL como asset estático con CORS dinámico.
+
+---
+
+## Instalación y configuración local
+
+### Requisitos
+- Node.js 20+
+- Docker Desktop
+
+### 1. Variables de entorno
+
+Crea un archivo `.env` en la raíz del proyecto:
+
+```env
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5436
+POSTGRES_USERNAME=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DATABASE=finanphy
+POSTGRES_SSL=false
+
+JWT_SECRET=tu_secreto_jwt_aqui
+
+OPENAI_API_KEY=sk-...
+OPENAI_MAX_REQUESTS_PER_MINUTE=10
+
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USER=tu@gmail.com
+MAIL_PASS=tu_app_password
+
+FRONTEND_URL=http://localhost:3000
 ```
 
-## Run tests
+### 2. Base de datos local
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+docker-compose up -d
+# PostgreSQL disponible en localhost:5436
+# pgAdmin disponible en localhost:5050
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### 3. Instalar dependencias y correr
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm install
+npm run start:dev
+# API disponible en http://localhost:3000
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+Las migraciones se aplican automáticamente al iniciar.
 
-## Resources
+---
 
-Check out a few resources that may come in handy when working with NestJS:
+## Scripts disponibles
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+```bash
+npm run start:dev        # Modo desarrollo con hot-reload
+npm run start:prod       # Build + migraciones + servidor
+npm run migration:run    # Aplicar migraciones pendientes
+npm run migration:revert # Revertir última migración
+npm run seed             # Poblar la BD con datos de prueba
+npm run build            # Compilar para producción
+npm run lint             # Lint con ESLint
+npm run test             # Ejecutar tests unitarios
+npm run test:e2e         # Tests end-to-end
+```
 
-## Support
+---
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## Colección Postman
 
-## Stay in touch
+El archivo [`Finanphy_Postman_Collection.json`](./Finanphy_Postman_Collection.json) contiene **54 requests** en **16 carpetas** con variables de entorno, descripciones y un script que guarda el token JWT automáticamente al hacer Login.
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+**Variables requeridas en Postman:**
 
-## License
+| Variable | Valor |
+|---|---|
+| `baseUrl` | `http://localhost:3000` o URL de producción |
+| `token` | Se llena automáticamente al ejecutar Login |
+| `companyId` | UUID de la empresa del usuario |
+| `userId` | UUID del usuario autenticado |
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+---
+
+## Despliegue en producción
+
+| Servicio | Plataforma | Notas |
+|---|---|---|
+| Backend API | **Render** | `npm run start:prod` aplica migraciones antes de levantar |
+| Frontend | **Vercel** | React SPA en repositorio separado |
+| Base de datos | **PostgreSQL Cloud** | SSL habilitado (`POSTGRES_SSL=true`) |
+
+CORS configurado para: `localhost:3000`, `localhost:3001`, `finanphy-dev-auth.onrender.com`, `finanphy.vercel.app`.
