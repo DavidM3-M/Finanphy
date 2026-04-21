@@ -76,47 +76,58 @@ export class ExpensesService {
       ? await validateCompanyOwnership(this.companyRepo, dto.companyId, userId)
       : await this.getDefaultCompanyForUser(userId);
 
-    const [row] = await this.dataSource.query<Expense[]>(
-      `SELECT * FROM sp_create_expense($1, $2, $3, $4, $5, $6, $7)`,
-      [
-        dto.amount,
-        dto.category,
-        company.id,
-        dto.description ?? null,
-        dto.supplier ?? null,
-        dto.entryDate ? new Date(dto.entryDate) : null,
-        dto.dueDate ? new Date(dto.dueDate) : null,
-      ],
-    );
+    return this.dataSource.transaction(async (manager) => {
+      await manager.query(`SET LOCAL app.current_user_id = $1`, [userId]);
 
-    return row;
+      const [row] = await manager.query<Expense[]>(
+        `SELECT * FROM sp_create_expense($1, $2, $3, $4, $5, $6, $7)`,
+        [
+          dto.amount,
+          dto.category,
+          company.id,
+          dto.description ?? null,
+          dto.supplier ?? null,
+          dto.entryDate ? new Date(dto.entryDate) : null,
+          dto.dueDate ? new Date(dto.dueDate) : null,
+        ],
+      );
+
+      return row;
+    });
   }
 
   async updateForUser(id: number, dto: UpdateExpenseDto, userId: string) {
     // Verificar propiedad antes de actualizar
     await this.findOneByUser(id, userId);
 
-    const [row] = await this.dataSource.query<Expense[]>(
-      `SELECT * FROM sp_update_expense($1, $2, $3, $4, $5, $6, $7)`,
-      [
-        id,
-        dto.amount ?? null,
-        dto.category ?? null,
-        dto.description ?? null,
-        dto.supplier ?? null,
-        dto.entryDate ? new Date(dto.entryDate) : null,
-        dto.dueDate ? new Date(dto.dueDate) : null,
-      ],
-    );
+    return this.dataSource.transaction(async (manager) => {
+      await manager.query(`SET LOCAL app.current_user_id = $1`, [userId]);
 
-    return row;
+      const [row] = await manager.query<Expense[]>(
+        `SELECT * FROM sp_update_expense($1, $2, $3, $4, $5, $6, $7)`,
+        [
+          id,
+          dto.amount ?? null,
+          dto.category ?? null,
+          dto.description ?? null,
+          dto.supplier ?? null,
+          dto.entryDate ? new Date(dto.entryDate) : null,
+          dto.dueDate ? new Date(dto.dueDate) : null,
+        ],
+      );
+
+      return row;
+    });
   }
 
   async removeForUser(id: number, userId: string) {
     // Verificar propiedad antes de eliminar
     await this.findOneByUser(id, userId);
 
-    await this.dataSource.query(`SELECT sp_delete_expense($1)`, [id]);
+    await this.dataSource.transaction(async (manager) => {
+      await manager.query(`SET LOCAL app.current_user_id = $1`, [userId]);
+      await manager.query(`SELECT sp_delete_expense($1)`, [id]);
+    });
 
     return { message: 'Gasto eliminado correctamente' };
   }
