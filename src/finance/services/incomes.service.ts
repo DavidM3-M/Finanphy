@@ -101,6 +101,9 @@ export class IncomesService {
 
     // Usar SP sp_create_income + ajuste de saldo en una transacción
     return this.dataSource.transaction(async (manager) => {
+      // Propagar el userId al trigger de auditoría
+      await manager.query(`SET LOCAL app.current_user_id = $1`, [userId]);
+
       // Verificar customer dentro de la misma transacción si aplica
       if (customerId) {
         const customer = await manager.findOne(Customer, {
@@ -158,29 +161,34 @@ export class IncomesService {
         ? (this.parseDateInput(dto.dueDate) ?? null)
         : null;
 
-    // Llamar al procedimiento almacenado para actualizar
-    const [row] = await this.dataSource.query<Income[]>(
-      `SELECT * FROM sp_update_income($1, $2, $3, $4, $5, $6, $7)`,
-      [
-        id,
-        dto.amount ?? null,
-        dto.category ?? null,
-        dto.description ?? null,
-        dto.invoiceNumber ?? null,
-        entryDateParsed,
-        dueDateParsed,
-      ],
-    );
+    return this.dataSource.transaction(async (manager) => {
+      await manager.query(`SET LOCAL app.current_user_id = $1`, [userId]);
 
-    return row;
+      const [row] = await manager.query<Income[]>(
+        `SELECT * FROM sp_update_income($1, $2, $3, $4, $5, $6, $7)`,
+        [
+          id,
+          dto.amount ?? null,
+          dto.category ?? null,
+          dto.description ?? null,
+          dto.invoiceNumber ?? null,
+          entryDateParsed,
+          dueDateParsed,
+        ],
+      );
+
+      return row;
+    });
   }
 
   async removeForUser(id: number, userId: string) {
     // Verificar propiedad antes de eliminar
     await this.findOneByUser(id, userId);
 
-    // Llamar al procedimiento almacenado para eliminar
-    await this.dataSource.query(`SELECT sp_delete_income($1)`, [id]);
+    await this.dataSource.transaction(async (manager) => {
+      await manager.query(`SET LOCAL app.current_user_id = $1`, [userId]);
+      await manager.query(`SELECT sp_delete_income($1)`, [id]);
+    });
 
     return { message: 'Ingreso eliminado correctamente' };
   }

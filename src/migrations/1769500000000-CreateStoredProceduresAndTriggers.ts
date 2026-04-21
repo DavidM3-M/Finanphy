@@ -854,9 +854,7 @@ export class CreateStoredProceduresAndTriggers1769500000000
     await queryRunner.query(
       `DROP FUNCTION IF EXISTS sp_update_customer(UUID, VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR, TEXT)`,
     );
-    await queryRunner.query(
-      `DROP FUNCTION IF EXISTS sp_delete_customer(UUID)`,
-    );
+    await queryRunner.query(`DROP FUNCTION IF EXISTS sp_delete_customer(UUID)`);
 
     await queryRunner.query(
       `DROP FUNCTION IF EXISTS sp_register_customer_payment(UUID, NUMERIC, TIMESTAMPTZ, VARCHAR, TEXT, UUID)`,
@@ -875,9 +873,7 @@ export class CreateStoredProceduresAndTriggers1769500000000
     await queryRunner.query(
       `DROP FUNCTION IF EXISTS sp_update_product(UUID, VARCHAR, VARCHAR, NUMERIC, NUMERIC, VARCHAR, VARCHAR, BOOLEAN, BOOLEAN, TIMESTAMPTZ, TIMESTAMPTZ)`,
     );
-    await queryRunner.query(
-      `DROP FUNCTION IF EXISTS sp_delete_product(UUID)`,
-    );
+    await queryRunner.query(`DROP FUNCTION IF EXISTS sp_delete_product(UUID)`);
 
     // Tablas auxiliares
     await queryRunner.query(`DROP TABLE IF EXISTS stock_alerts`);
